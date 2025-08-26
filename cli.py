@@ -32,7 +32,9 @@ def main():
         "--list", action="store_true", help="List all available questions"
     )
     parser.add_argument(
-        "--question", type=int, help="Show specific question by ID"
+        "--question",
+        type=int,
+        help="Show specific question by ID",
     )
     args = parser.parse_args()
 
@@ -44,7 +46,8 @@ def main():
             print(f"  {q['id']}: {q['title']} ({q['difficulty']})")
     elif args.question:
         question = next(
-            (q for q in questions if q["id"] == args.question), None
+            (q for q in questions if q["id"] == args.question),
+            None,
         )
         if question:
             print(f"Question {question['id']}: {question['title']}")
