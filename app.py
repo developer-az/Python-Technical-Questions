@@ -44,7 +44,11 @@ def api_info():
             "GET /stats": "Get statistics",
             "GET /questions/<id>/solutions": "Get all solutions for a question",
             "GET /questions/<id>/solutions/<solution_id>": "Get specific solution",
-            "POST /questions/<id>/solutions": "Add new solution to question"
+            "POST /questions/<id>/solutions": "Add new solution to question",
+            "GET /flashcard": "Flashcard game interface",
+            "GET /flashcard/start": "Start flashcard session",
+            "POST /flashcard/answer": "Submit flashcard answer",
+            "GET /flashcard/stats": "Get flashcard statistics"
         }
     }
 
@@ -373,6 +377,118 @@ def add_solution(question_id):
         
     except Exception as e:
         return {"error": f"Failed to add solution: {str(e)}"}, 500
+
+
+# Flashcard Game Integration
+from game import FlashcardGame
+
+# Global flashcard game instance
+flashcard_game = FlashcardGame()
+
+
+@app.route("/flashcard")
+def flashcard_interface():
+    """Flashcard game web interface."""
+    return render_template('flashcard.html')
+
+
+@app.route("/flashcard/start", methods=["POST"])
+def start_flashcard_session():
+    """Start a new flashcard session."""
+    try:
+        data = request.get_json() or {}
+        category = data.get("category")
+        difficulty = data.get("difficulty")
+        
+        count = flashcard_game.set_question_pool(category=category, difficulty=difficulty)
+        
+        return {
+            "message": "Flashcard session started",
+            "questions_loaded": count,
+            "filters": {
+                "category": category,
+                "difficulty": difficulty
+            }
+        }
+    except Exception as e:
+        return {"error": f"Failed to start session: {str(e)}"}, 500
+
+
+@app.route("/flashcard/question", methods=["GET"])
+def get_flashcard_question():
+    """Get the next flashcard question."""
+    question = flashcard_game.get_next_question()
+    
+    if not question:
+        return {"message": "No more questions available"}, 404
+    
+    return {
+        "question": {
+            "id": question["id"],
+            "title": question["title"],
+            "category": question["category"],
+            "difficulty": question["difficulty"],
+            "problem": question["problem"]
+        }
+    }
+
+
+@app.route("/flashcard/hint", methods=["GET"])
+def get_flashcard_hint():
+    """Get hints for current question."""
+    if not flashcard_game.current_question:
+        return {"error": "No active question"}, 404
+    
+    hints = flashcard_game.current_question.get("hints", [])
+    return {"hints": hints}
+
+
+@app.route("/flashcard/solution", methods=["GET"])
+def get_flashcard_solution():
+    """Get solution for current question."""
+    if not flashcard_game.current_question:
+        return {"error": "No active question"}, 404
+    
+    return {
+        "solution": flashcard_game.current_question["solution"]
+    }
+
+
+@app.route("/flashcard/answer", methods=["POST"])
+def submit_flashcard_answer():
+    """Submit answer for current question."""
+    try:
+        data = request.get_json()
+        is_correct = data.get("correct", False)
+        
+        flashcard_game.record_answer(is_correct)
+        
+        return {
+            "message": "Answer recorded",
+            "correct": is_correct
+        }
+    except Exception as e:
+        return {"error": f"Failed to record answer: {str(e)}"}, 500
+
+
+@app.route("/flashcard/stats", methods=["GET"])
+def get_flashcard_stats():
+    """Get flashcard statistics."""
+    return {
+        "overall_stats": flashcard_game.stats,
+        "session_stats": flashcard_game.session_stats
+    }
+
+
+@app.route("/flashcard/categories", methods=["GET"])
+def get_flashcard_categories():
+    """Get available categories for flashcard game."""
+    from questions import get_categories, get_difficulties
+    
+    return {
+        "categories": get_categories(),
+        "difficulties": get_difficulties()
+    }
 
 
 if __name__ == "__main__":
