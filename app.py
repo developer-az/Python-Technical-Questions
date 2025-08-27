@@ -41,7 +41,10 @@ def api_info():
             "DELETE /questions/<id>": "Delete question",
             "GET /practice/random": "Get random question for practice",
             "POST /practice/submit": "Submit solution for evaluation",
-            "GET /stats": "Get statistics"
+            "GET /stats": "Get statistics",
+            "GET /questions/<id>/solutions": "Get all solutions for a question",
+            "GET /questions/<id>/solutions/<solution_id>": "Get specific solution",
+            "POST /questions/<id>/solutions": "Add new solution to question"
         }
     }
 
@@ -284,6 +287,92 @@ def not_found(error):
 def internal_error(error):
     """Handle 500 errors."""
     return {"error": "Internal server error", "message": "Something went wrong"}, 500
+
+
+@app.route("/questions/<int:question_id>/solutions", methods=["GET"])
+def get_solutions(question_id):
+    """Get all solutions for a specific question."""
+    question = next((q for q in questions if q["id"] == question_id), None)
+    
+    if not question:
+        return {"error": f"Question with ID {question_id} not found"}, 404
+    
+    solutions = question.get("solutions", [])
+    
+    return {
+        "question_id": question_id,
+        "question_title": question["title"],
+        "solutions": solutions,
+        "total_solutions": len(solutions)
+    }
+
+
+@app.route("/questions/<int:question_id>/solutions/<int:solution_id>", methods=["GET"])
+def get_solution(question_id, solution_id):
+    """Get a specific solution for a question."""
+    question = next((q for q in questions if q["id"] == question_id), None)
+    
+    if not question:
+        return {"error": f"Question with ID {question_id} not found"}, 404
+    
+    solutions = question.get("solutions", [])
+    solution = next((s for s in solutions if s["id"] == solution_id), None)
+    
+    if not solution:
+        return {"error": f"Solution with ID {solution_id} not found for question {question_id}"}, 404
+    
+    return {
+        "question_id": question_id,
+        "question_title": question["title"],
+        "solution": solution
+    }
+
+
+@app.route("/questions/<int:question_id>/solutions", methods=["POST"])
+def add_solution(question_id):
+    """Add a new solution to a question."""
+    try:
+        question = next((q for q in questions if q["id"] == question_id), None)
+        
+        if not question:
+            return {"error": f"Question with ID {question_id} not found"}, 404
+        
+        data = request.get_json()
+        
+        if not data:
+            return {"error": "No data provided"}, 400
+        
+        required_fields = ["title", "description", "code"]
+        for field in required_fields:
+            if field not in data:
+                return {"error": f"Missing required field: {field}"}, 400
+        
+        # Initialize solutions list if it doesn't exist
+        if "solutions" not in question:
+            question["solutions"] = []
+        
+        # Generate new solution ID
+        new_id = max(s["id"] for s in question["solutions"]) + 1 if question["solutions"] else 1
+        
+        new_solution = {
+            "id": new_id,
+            "title": data["title"],
+            "description": data["description"],
+            "code": data["code"],
+            "time_complexity": data.get("time_complexity", "Not specified"),
+            "space_complexity": data.get("space_complexity", "Not specified"),
+            "approach": data.get("approach", "Not specified")
+        }
+        
+        question["solutions"].append(new_solution)
+        
+        return {
+            "message": "Solution added successfully",
+            "solution": new_solution
+        }, 201
+        
+    except Exception as e:
+        return {"error": f"Failed to add solution: {str(e)}"}, 500
 
 
 if __name__ == "__main__":

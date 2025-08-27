@@ -207,6 +207,9 @@
                         <button onclick="viewQuestion(${question.id})" class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors text-sm">
                             View Details
                         </button>
+                        <button onclick="viewSolutions(${question.id})" class="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg transition-colors text-sm">
+                            View Solutions
+                        </button>
                         <button onclick="deleteQuestion(${question.id})" class="bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-lg transition-colors text-sm">
                             Delete
                         </button>
@@ -224,6 +227,83 @@
             } catch (error) {
                 console.error('Error viewing question:', error);
                 showError('Failed to view question');
+            }
+        }
+
+        // View solutions for a question
+        async function viewSolutions(questionId) {
+            try {
+                const response = await fetch(`${API_BASE}/questions/${questionId}/solutions`);
+                const data = await response.json();
+                
+                if (data.solutions.length === 0) {
+                    alert('No solutions available for this question yet.');
+                    return;
+                }
+                
+                let solutionsText = `Solutions for: ${data.question_title}\n\n`;
+                data.solutions.forEach((solution, index) => {
+                    solutionsText += `${index + 1}. ${solution.title}\n`;
+                    solutionsText += `   Approach: ${solution.approach}\n`;
+                    solutionsText += `   Time: ${solution.time_complexity}, Space: ${solution.space_complexity}\n`;
+                    solutionsText += `   Description: ${solution.description}\n\n`;
+                    solutionsText += `   Code:\n${solution.code}\n\n`;
+                    solutionsText += '─'.repeat(50) + '\n\n';
+                });
+                
+                // Create a modal or use a more sophisticated display
+                const modal = document.createElement('div');
+                modal.style.cssText = `
+                    position: fixed;
+                    top: 0;
+                    left: 0;
+                    width: 100%;
+                    height: 100%;
+                    background: rgba(0,0,0,0.8);
+                    z-index: 1000;
+                    display: flex;
+                    justify-content: center;
+                    align-items: center;
+                    padding: 20px;
+                `;
+                
+                const content = document.createElement('div');
+                content.style.cssText = `
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    max-width: 800px;
+                    max-height: 80vh;
+                    overflow-y: auto;
+                    white-space: pre-wrap;
+                    font-family: monospace;
+                    font-size: 12px;
+                    line-height: 1.4;
+                `;
+                content.textContent = solutionsText;
+                
+                const closeBtn = document.createElement('button');
+                closeBtn.textContent = 'Close';
+                closeBtn.style.cssText = `
+                    position: absolute;
+                    top: 10px;
+                    right: 10px;
+                    background: #ef4444;
+                    color: white;
+                    border: none;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    cursor: pointer;
+                `;
+                closeBtn.onclick = () => document.body.removeChild(modal);
+                
+                content.appendChild(closeBtn);
+                modal.appendChild(content);
+                document.body.appendChild(modal);
+                
+            } catch (error) {
+                console.error('Error viewing solutions:', error);
+                showError('Failed to load solutions');
             }
         }
 

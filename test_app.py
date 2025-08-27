@@ -306,3 +306,79 @@ def test_invalid_json_request(client):
     
     # Should handle invalid JSON gracefully
     assert response.status_code in [400, 500]
+
+
+def test_get_solutions(client):
+    """Test getting solutions for a question."""
+    response = client.get('/questions/1/solutions')
+    data = json.loads(response.data)
+    
+    assert response.status_code == 200
+    assert 'solutions' in data
+    assert 'question_title' in data
+    assert len(data['solutions']) >= 1
+
+
+def test_get_solutions_nonexistent_question(client):
+    """Test getting solutions for a non-existent question."""
+    response = client.get('/questions/999/solutions')
+    data = json.loads(response.data)
+    
+    assert response.status_code == 404
+    assert 'error' in data
+
+
+def test_get_specific_solution(client):
+    """Test getting a specific solution."""
+    response = client.get('/questions/1/solutions/1')
+    data = json.loads(response.data)
+    
+    assert response.status_code == 200
+    assert 'solution' in data
+    assert data['solution']['id'] == 1
+
+
+def test_get_specific_solution_nonexistent(client):
+    """Test getting a non-existent solution."""
+    response = client.get('/questions/1/solutions/999')
+    data = json.loads(response.data)
+    
+    assert response.status_code == 404
+    assert 'error' in data
+
+
+def test_add_solution(client):
+    """Test adding a new solution."""
+    new_solution = {
+        "title": "Test Solution",
+        "description": "A test solution",
+        "code": "def test(): return True",
+        "time_complexity": "O(1)",
+        "space_complexity": "O(1)",
+        "approach": "Test"
+    }
+    
+    response = client.post('/questions/1/solutions',
+                          data=json.dumps(new_solution),
+                          content_type='application/json')
+    data = json.loads(response.data)
+    
+    assert response.status_code == 201
+    assert data['message'] == 'Solution added successfully'
+    assert 'solution' in data
+
+
+def test_add_solution_missing_fields(client):
+    """Test adding a solution with missing required fields."""
+    incomplete_solution = {
+        "title": "Test Solution"
+        # Missing description and code
+    }
+    
+    response = client.post('/questions/1/solutions',
+                          data=json.dumps(incomplete_solution),
+                          content_type='application/json')
+    data = json.loads(response.data)
+    
+    assert response.status_code == 400
+    assert 'error' in data
