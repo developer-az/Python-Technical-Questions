@@ -70,3 +70,6 @@ instance/
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# User data files
+leetcode_stats.json

@@ -1,24 +1,34 @@
 # Python Technical Questions Practice Tool
 
-A comprehensive tool for practicing Python technical interview questions with multiple interfaces: CLI, web API, and algorithmic functions.
+A comprehensive tool for practicing Python technical interview questions with **dual interfaces**: modern web API and interactive CLI flashcard game.
 
 ## Features
 
-- **CLI Interface**: Interactive command-line tool for browsing and practicing questions
-- **Web API**: Flask-based REST API for programmatic access
-- **Algorithmic Functions**: Core implementations of common interview problems
-- **Test Suite**: Comprehensive unit tests for all components
+- **🌐 Modern Web Interface**: Beautiful, responsive web application with Tailwind CSS
+- **🎮 Interactive CLI Game**: Flashcard-style practice with progress tracking
+- **📊 Comprehensive Statistics**: Track performance across categories and difficulties
+- **🔍 Multiple Practice Modes**: Random, category-based, and difficulty-based filtering
+- **💡 Progressive Hints**: Get helpful hints before viewing solutions
+- **📚 Rich Question Database**: 6+ LeetCode problems with detailed solutions
+- **🚀 RESTful API**: Full CRUD operations for programmatic access
+- **✅ Comprehensive Testing**: 30+ unit tests covering all functionality
 
 ## Project Structure
 
 ```
 .
-├── app.py          # Flask web application
-├── cli.py          # Command-line interface
-├── main.py         # Core algorithmic functions
-├── test_main.py    # Tests for algorithmic functions
-├── test_cli.py     # Tests for CLI interface
-└── README.md       # This file
+├── app.py              # Flask web application
+├── flashcard_game.py   # CLI flashcard game interface
+├── game.py             # Game logic and statistics
+├── questions.py        # Question database (6+ LeetCode problems)
+├── cli.py              # Simple CLI interface
+├── main.py             # Core algorithmic functions
+├── templates/          # Web interface templates
+├── static/             # CSS and static files
+├── test_app.py         # Web API tests
+├── test_main.py        # Algorithm tests
+├── test_cli.py         # CLI tests
+└── README.md           # This file
 ```
 
 ## Installation
@@ -48,26 +58,50 @@ pip3 install -r requirements.txt --user --break-system-packages
 
 ## Usage
 
-### 1. Command Line Interface (CLI)
+### 1. 🎮 Interactive CLI Flashcard Game
 
-The CLI provides an interactive way to browse and practice coding questions.
+The CLI flashcard game provides an engaging way to practice coding questions with progress tracking.
+
+#### Start the flashcard game:
+```bash
+python3 flashcard_game.py
+```
+
+#### Features:
+- **Interactive menus** with emoji indicators
+- **Multiple practice modes**: Random, category-based, difficulty-based
+- **Progressive hints** before viewing solutions
+- **Progress tracking** with statistics and streaks
+- **Session summaries** with accuracy and duration
+
+#### Game Commands:
+- `hint` - Get helpful hints
+- `solution` - View complete solution
+- `correct` - Mark answer as correct
+- `wrong` - Mark answer as wrong
+- `skip` - Skip current question
+- `quit` - End practice session
+
+### 2. 📋 Simple CLI Interface
+
+The simple CLI provides basic question browsing.
 
 #### List all available questions:
 ```bash
-python cli.py --list
+python3 cli.py --list
 ```
 
 #### View a specific question by ID:
 ```bash
-python cli.py --question 1
+python3 cli.py --question 1
 ```
 
 #### Get help:
 ```bash
-python cli.py --help
+python3 cli.py --help
 ```
 
-### 2. Web API
+### 3. 🌐 Web API & Interface
 
 The Flask application provides a comprehensive REST API with a modern web interface.
 
@@ -123,12 +157,12 @@ curl http://localhost:5000/practice/random
 curl http://localhost:5000/stats
 ```
 
-### 3. Core Functions
+### 4. 🔧 Core Functions
 
 Run the main algorithmic functions directly:
 
 ```bash
-python main.py
+python3 main.py
 ```
 
 This will execute the Fibonacci sequence demonstration.
@@ -189,15 +223,31 @@ python main.py
 
 ## Available Questions
 
-The tool currently includes these practice questions:
+The tool includes **6+ LeetCode problems** across multiple categories:
 
-1. **Two Sum** (Easy)
-   - Find two numbers in an array that add up to a target
-   - Example: `nums = [2,7,11,15], target = 9` → `[0,1]`
+### Arrays
+1. **Two Sum** (Easy) - Find two numbers that add up to target
+2. **Best Time to Buy and Sell Stock** (Easy) - Maximize profit from stock prices
+3. **3Sum** (Medium) - Find all unique triplets that sum to zero
 
-2. **Fibonacci Sequence** (Easy)
-   - Calculate the nth Fibonacci number
-   - Example: `n = 5` → `5` (sequence: 0,1,1,2,3,5)
+### Strings
+4. **Valid Palindrome** (Easy) - Check if string is palindrome after cleaning
+
+### Linked Lists
+5. **Reverse Linked List** (Easy) - Reverse a singly linked list
+
+### Trees
+6. **Maximum Depth of Binary Tree** (Easy) - Find the maximum depth of a binary tree
+
+### Additional Questions
+- **Fibonacci Sequence** (Easy) - Calculate nth Fibonacci number
+- **Reverse String** (Easy) - Reverse a string in place
+
+Each question includes:
+- **Detailed problem statements** with examples
+- **Multiple solution approaches** with complexity analysis
+- **Progressive hints** for learning
+- **Complete code implementations**
 
 ## Development
 
