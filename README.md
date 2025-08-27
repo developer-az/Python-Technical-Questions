@@ -264,6 +264,44 @@ python app.py
 3. Add comprehensive tests
 4. Update this README with new features
 
+## Deployment
+
+### 🚀 Deploy to Render (Recommended - Free)
+
+1. **Fork/Clone this repository** to your GitHub account
+2. **Sign up** at [render.com](https://render.com)
+3. **Connect your GitHub account**
+4. **Create New Web Service**
+5. **Select your repository**
+6. **Configure:**
+   - **Name**: `python-technical-questions`
+   - **Environment**: `Python`
+   - **Build Command**: `pip install -r requirements.txt`
+   - **Start Command**: `gunicorn app:app`
+7. **Deploy!** Your app will be live at `https://your-app-name.onrender.com`
+
+### 🚀 Deploy to Railway (Alternative - Free)
+
+1. **Sign up** at [railway.app](https://railway.app)
+2. **Connect GitHub** and select this repository
+3. **Railway auto-detects** Flask app
+4. **Deploy automatically**
+5. **Get your live URL**
+
+### 🚀 Deploy to Heroku (Alternative - Limited Free)
+
+1. **Install Heroku CLI**
+2. **Login**: `heroku login`
+3. **Create app**: `heroku create your-app-name`
+4. **Deploy**: `git push heroku master`
+5. **Open**: `heroku open`
+
+### 📝 Environment Variables
+
+For production, consider setting:
+- `FLASK_ENV=production`
+- `FLASK_DEBUG=false`
+
 ## License
 
 This project is open source and available under the MIT License.
