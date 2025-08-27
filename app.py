@@ -1,11 +1,11 @@
 from flask import Flask, jsonify, request, render_template
-from cli import load_questions
+from questions import get_all_questions
 import json
 
 app = Flask(__name__)
 
-# Load questions from CLI module
-questions = load_questions()
+# Load questions from questions module (same as flashcard game)
+questions = get_all_questions()
 
 # Simple CORS headers
 @app.after_request
@@ -492,4 +492,4 @@ def get_flashcard_categories():
 
 
 if __name__ == "__main__":
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5001)
