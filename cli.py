@@ -6,34 +6,38 @@ import copy
 def load_questions():
     """Load all coding questions from the questions database."""
     all_questions = get_all_questions()
-    
+
     # Make a deep copy to avoid modifying the original data
     questions_copy = copy.deepcopy(all_questions)
-    
+
     # Convert to the format expected by CLI (add example field from problem)
     for question in questions_copy:
-        if 'example' not in question and 'problem' in question:
+        if "example" not in question and "problem" in question:
             # Extract example from problem text if it contains "Example:"
-            problem_text = question['problem']
-            if 'Example:' in problem_text:
-                example_start = problem_text.find('Example:')
-                example_text = problem_text[example_start:].split('\n\n')[0]
-                question['example'] = example_text.replace('Example:\n', '').replace('Example:', '')
+            problem_text = question["problem"]
+            if "Example:" in problem_text:
+                example_start = problem_text.find("Example:")
+                example_text = problem_text[example_start:].split("\n\n")[0]
+                question["example"] = example_text.replace("Example:\n", "").replace(
+                    "Example:", ""
+                )
             else:
-                question['example'] = "See problem description for examples"
-        
+                question["example"] = "See problem description for examples"
+
         # Convert solution format if needed
-        if 'solution' in question and 'solutions' not in question:
-            question['solutions'] = [{
-                'id': 1,
-                'title': 'Solution',
-                'description': 'Primary solution approach',
-                'code': question['solution'],
-                'time_complexity': 'See solution comments',
-                'space_complexity': 'See solution comments',
-                'approach': 'Standard approach'
-            }]
-    
+        if "solution" in question and "solutions" not in question:
+            question["solutions"] = [
+                {
+                    "id": 1,
+                    "title": "Solution",
+                    "description": "Primary solution approach",
+                    "code": question["solution"],
+                    "time_complexity": "See solution comments",
+                    "space_complexity": "See solution comments",
+                    "approach": "Standard approach",
+                }
+            ]
+
     return questions_copy
 
 
@@ -67,7 +71,7 @@ def main():
             print(f"Difficulty: {question['difficulty']}")
             print(f"Category: {question.get('category', 'General')}")
             # Use 'problem' field if available, fallback to 'description'
-            description = question.get('problem', question.get('description', ''))
+            description = question.get("problem", question.get("description", ""))
             print(f"Description: {description}")
             print(f"Example: {question['example']}")
         else:

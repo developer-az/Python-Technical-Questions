@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """LeetCode Practice Tool - Flashcard Style Game
-A full-fledged practice tool for common LeetCode questions in a flashcard-like game format."""
+A full-fledged practice tool for common LeetCode questions in a flashcard-like game format.
+"""
 
 import sys
 import os
@@ -15,12 +16,12 @@ class LeetCodePracticeTool:
 
     def display_welcome(self):
         """Display welcome message and main menu."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🚀 LEETCODE PRACTICE TOOL - FLASHCARD GAME")
-        print("="*60)
+        print("=" * 60)
         print("Welcome to your personal LeetCode practice companion!")
         print("Practice coding problems in a fun, flashcard-style format.")
-        print("="*60)
+        print("=" * 60)
 
     def display_main_menu(self):
         """Display the main menu options."""
@@ -87,7 +88,9 @@ class LeetCodePracticeTool:
                     selected_category = categories[cat_choice - 1]
                     count = self.game.set_question_pool(category=selected_category)
                     if count > 0:
-                        print(f"✅ Loaded {count} questions from {selected_category.replace('_', ' ').title()}!")
+                        print(
+                            f"✅ Loaded {count} questions from {selected_category.replace('_', ' ').title()}!"
+                        )
                         return True
                     else:
                         print("❌ No questions found for this category.")
@@ -105,7 +108,9 @@ class LeetCodePracticeTool:
                     selected_difficulty = difficulties[diff_choice - 1]
                     count = self.game.set_question_pool(difficulty=selected_difficulty)
                     if count > 0:
-                        print(f"✅ Loaded {count} questions with {selected_difficulty} difficulty!")
+                        print(
+                            f"✅ Loaded {count} questions with {selected_difficulty} difficulty!"
+                        )
                         return True
                     else:
                         print("❌ No questions found for this difficulty.")
@@ -130,11 +135,12 @@ class LeetCodePracticeTool:
                     if diff_choice:
                         selected_difficulty = difficulties[diff_choice - 1]
                         count = self.game.set_question_pool(
-                            category=selected_category, 
-                            difficulty=selected_difficulty
+                            category=selected_category, difficulty=selected_difficulty
                         )
                         if count > 0:
-                            print(f"✅ Loaded {count} questions: {selected_category.replace('_', ' ').title()} - {selected_difficulty}!")
+                            print(
+                                f"✅ Loaded {count} questions: {selected_category.replace('_', ' ').title()} - {selected_difficulty}!"
+                            )
                             return True
                         else:
                             print("❌ No questions found for this combination.")
@@ -150,20 +156,22 @@ class LeetCodePracticeTool:
 
     def run_practice_session(self):
         """Run the main practice session."""
-        print("\n" + "="*60)
+        print("\n" + "=" * 60)
         print("🎯 PRACTICE SESSION STARTED")
-        print("="*60)
+        print("=" * 60)
         print("Instructions:")
         print("• Read each question carefully")
         print("• Type 'hint' for hints, 'solution' to see the answer")
         print("• Type 'correct' if you got it right, 'wrong' if not")
         print("• Type 'skip' to skip a question, 'quit' to end session")
-        print("="*60)
+        print("=" * 60)
 
         while True:
             question = self.game.get_next_question()
             if not question:
-                print("\n🎉 Congratulations! You've completed all questions in this set!")
+                print(
+                    "\n🎉 Congratulations! You've completed all questions in this set!"
+                )
                 break
 
             # Show the question
@@ -171,35 +179,43 @@ class LeetCodePracticeTool:
 
             # Wait for user input
             while True:
-                user_input = input("\n👉 Enter command (hint/solution/correct/wrong/skip/quit): ").strip().lower()
+                user_input = (
+                    input(
+                        "\n👉 Enter command (hint/solution/correct/wrong/skip/quit): "
+                    )
+                    .strip()
+                    .lower()
+                )
 
-                if user_input == 'hint':
+                if user_input == "hint":
                     print(self.game.show_hints())
 
-                elif user_input == 'solution':
+                elif user_input == "solution":
                     print(self.game.show_solution())
 
-                elif user_input == 'correct':
+                elif user_input == "correct":
                     self.game.record_answer(True)
                     print("✅ Great job! Marked as correct.")
                     break
 
-                elif user_input == 'wrong':
+                elif user_input == "wrong":
                     self.game.record_answer(False)
                     print("❌ No worries! Keep practicing.")
                     break
 
-                elif user_input == 'skip':
+                elif user_input == "skip":
                     print("⏭️ Question skipped.")
                     break
 
-                elif user_input == 'quit':
+                elif user_input == "quit":
                     print("\n📊 Ending practice session...")
                     print(self.game.get_session_summary())
                     return
 
                 else:
-                    print("❌ Invalid command. Try: hint, solution, correct, wrong, skip, or quit")
+                    print(
+                        "❌ Invalid command. Try: hint, solution, correct, wrong, skip, or quit"
+                    )
 
         # Show session summary
         print(self.game.get_session_summary())
@@ -213,8 +229,12 @@ class LeetCodePracticeTool:
 
         choice = self.get_user_choice(2)
         if choice == 1:
-            confirm = input("⚠️ Are you sure you want to reset all statistics? (yes/no): ").strip().lower()
-            if confirm in ['yes', 'y']:
+            confirm = (
+                input("⚠️ Are you sure you want to reset all statistics? (yes/no): ")
+                .strip()
+                .lower()
+            )
+            if confirm in ["yes", "y"]:
                 print(self.game.reset_stats())
             else:
                 print("Statistics not reset.")

@@ -7,19 +7,20 @@ app = Flask(__name__)
 # Load questions from CLI module
 questions = load_questions()
 
+
 # Simple CORS headers
 @app.after_request
 def after_request(response):
-    response.headers.add('Access-Control-Allow-Origin', '*')
-    response.headers.add('Access-Control-Allow-Headers', 'Content-Type,Authorization')
-    response.headers.add('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,OPTIONS')
+    response.headers.add("Access-Control-Allow-Origin", "*")
+    response.headers.add("Access-Control-Allow-Headers", "Content-Type,Authorization")
+    response.headers.add("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE,OPTIONS")
     return response
 
 
 @app.route("/")
 def home():
     """Home endpoint with web interface."""
-    return render_template('index.html')
+    return render_template("index.html")
 
 
 @app.route("/api")
@@ -48,8 +49,8 @@ def api_info():
             "GET /flashcard": "Flashcard game interface",
             "GET /flashcard/start": "Start flashcard session",
             "POST /flashcard/answer": "Submit flashcard answer",
-            "GET /flashcard/stats": "Get flashcard statistics"
-        }
+            "GET /flashcard/stats": "Get flashcard statistics",
+        },
     }
 
 
@@ -57,9 +58,9 @@ def api_info():
 def health():
     """Health check endpoint."""
     return {
-        "status": "ok", 
+        "status": "ok",
         "message": "Application is running",
-        "questions_count": len(questions)
+        "questions_count": len(questions),
     }
 
 
@@ -68,22 +69,21 @@ def get_questions():
     """Get all questions with optional filtering."""
     difficulty = request.args.get("difficulty")
     limit = request.args.get("limit", type=int)
-    
+
     filtered_questions = questions
-    
+
     if difficulty:
-        filtered_questions = [q for q in questions if q["difficulty"].lower() == difficulty.lower()]
-    
+        filtered_questions = [
+            q for q in questions if q["difficulty"].lower() == difficulty.lower()
+        ]
+
     if limit:
         filtered_questions = filtered_questions[:limit]
-    
+
     return {
         "questions": filtered_questions,
         "total": len(filtered_questions),
-        "filters": {
-            "difficulty": difficulty,
-            "limit": limit
-        }
+        "filters": {"difficulty": difficulty, "limit": limit},
     }
 
 
@@ -91,28 +91,30 @@ def get_questions():
 def get_question(question_id):
     """Get a specific question by ID."""
     question = next((q for q in questions if q["id"] == question_id), None)
-    
+
     if not question:
         return {"error": f"Question with ID {question_id} not found"}, 404
-    
+
     return {"question": question}
 
 
 @app.route("/questions/difficulty/<difficulty>", methods=["GET"])
 def get_questions_by_difficulty(difficulty):
     """Get all questions of a specific difficulty level."""
-    filtered_questions = [q for q in questions if q["difficulty"].lower() == difficulty.lower()]
-    
+    filtered_questions = [
+        q for q in questions if q["difficulty"].lower() == difficulty.lower()
+    ]
+
     if not filtered_questions:
         return {
             "error": f"No questions found with difficulty '{difficulty}'",
-            "available_difficulties": list(set(q["difficulty"] for q in questions))
+            "available_difficulties": list(set(q["difficulty"] for q in questions)),
         }, 404
-    
+
     return {
         "questions": filtered_questions,
         "difficulty": difficulty,
-        "count": len(filtered_questions)
+        "count": len(filtered_questions),
     }
 
 
@@ -121,33 +123,30 @@ def add_question():
     """Add a new question."""
     try:
         data = request.get_json()
-        
+
         if not data:
             return {"error": "No data provided"}, 400
-        
+
         required_fields = ["title", "difficulty", "description"]
         for field in required_fields:
             if field not in data:
                 return {"error": f"Missing required field: {field}"}, 400
-        
+
         # Generate new ID
         new_id = max(q["id"] for q in questions) + 1 if questions else 1
-        
+
         new_question = {
             "id": new_id,
             "title": data["title"],
             "difficulty": data["difficulty"],
             "description": data["description"],
-            "example": data.get("example", "")
+            "example": data.get("example", ""),
         }
-        
+
         questions.append(new_question)
-        
-        return {
-            "message": "Question added successfully",
-            "question": new_question
-        }, 201
-        
+
+        return {"message": "Question added successfully", "question": new_question}, 201
+
     except Exception as e:
         return {"error": f"Failed to add question: {str(e)}"}, 500
 
@@ -157,25 +156,22 @@ def update_question(question_id):
     """Update an existing question."""
     try:
         question = next((q for q in questions if q["id"] == question_id), None)
-        
+
         if not question:
             return {"error": f"Question with ID {question_id} not found"}, 404
-        
+
         data = request.get_json()
-        
+
         if not data:
             return {"error": "No data provided"}, 400
-        
+
         # Update fields
         for field in ["title", "difficulty", "description", "example"]:
             if field in data:
                 question[field] = data[field]
-        
-        return {
-            "message": "Question updated successfully",
-            "question": question
-        }
-        
+
+        return {"message": "Question updated successfully", "question": question}
+
     except Exception as e:
         return {"error": f"Failed to update question: {str(e)}"}, 500
 
@@ -184,46 +180,42 @@ def update_question(question_id):
 def delete_question(question_id):
     """Delete a question."""
     global questions
-    
+
     question = next((q for q in questions if q["id"] == question_id), None)
-    
+
     if not question:
         return {"error": f"Question with ID {question_id} not found"}, 404
-    
+
     questions = [q for q in questions if q["id"] != question_id]
-    
-    return {
-        "message": "Question deleted successfully",
-        "deleted_question": question
-    }
+
+    return {"message": "Question deleted successfully", "deleted_question": question}
 
 
 @app.route("/practice/random", methods=["GET"])
 def get_random_question():
     """Get a random question for practice."""
     import random
-    
+
     if not questions:
         return {"error": "No questions available"}, 404
-    
+
     difficulty = request.args.get("difficulty")
-    
+
     if difficulty:
-        available_questions = [q for q in questions if q["difficulty"].lower() == difficulty.lower()]
+        available_questions = [
+            q for q in questions if q["difficulty"].lower() == difficulty.lower()
+        ]
         if not available_questions:
             return {
                 "error": f"No questions available with difficulty '{difficulty}'",
-                "available_difficulties": list(set(q["difficulty"] for q in questions))
+                "available_difficulties": list(set(q["difficulty"] for q in questions)),
             }, 404
     else:
         available_questions = questions
-    
+
     random_question = random.choice(available_questions)
-    
-    return {
-        "question": random_question,
-        "practice_mode": True
-    }
+
+    return {"question": random_question, "practice_mode": True}
 
 
 @app.route("/practice/submit", methods=["POST"])
@@ -231,21 +223,21 @@ def submit_solution():
     """Submit a solution for evaluation (mock implementation)."""
     try:
         data = request.get_json()
-        
+
         if not data:
             return {"error": "No solution data provided"}, 400
-        
+
         question_id = data.get("question_id")
         solution = data.get("solution")
-        
+
         if not question_id or not solution:
             return {"error": "Missing question_id or solution"}, 400
-        
+
         question = next((q for q in questions if q["id"] == question_id), None)
-        
+
         if not question:
             return {"error": f"Question with ID {question_id} not found"}, 404
-        
+
         # Mock evaluation - in a real app, this would run the code
         evaluation_result = {
             "question_id": question_id,
@@ -253,12 +245,12 @@ def submit_solution():
             "evaluation": {
                 "status": "submitted",
                 "message": "Solution submitted successfully (mock evaluation)",
-                "feedback": "This is a mock evaluation. In a real implementation, your code would be executed and tested against test cases."
-            }
+                "feedback": "This is a mock evaluation. In a real implementation, your code would be executed and tested against test cases.",
+            },
         }
-        
+
         return evaluation_result
-        
+
     except Exception as e:
         return {"error": f"Failed to evaluate solution: {str(e)}"}, 500
 
@@ -268,23 +260,26 @@ def get_stats():
     """Get statistics about the questions."""
     if not questions:
         return {"error": "No questions available"}, 404
-    
+
     difficulties = {}
     for question in questions:
         diff = question["difficulty"]
         difficulties[diff] = difficulties.get(diff, 0) + 1
-    
+
     return {
         "total_questions": len(questions),
         "difficulty_distribution": difficulties,
-        "question_ids": [q["id"] for q in questions]
+        "question_ids": [q["id"] for q in questions],
     }
 
 
 @app.errorhandler(404)
 def not_found(error):
     """Handle 404 errors."""
-    return {"error": "Endpoint not found", "message": "Check the API documentation at /"}, 404
+    return {
+        "error": "Endpoint not found",
+        "message": "Check the API documentation at /",
+    }, 404
 
 
 @app.errorhandler(500)
@@ -297,17 +292,17 @@ def internal_error(error):
 def get_solutions(question_id):
     """Get all solutions for a specific question."""
     question = next((q for q in questions if q["id"] == question_id), None)
-    
+
     if not question:
         return {"error": f"Question with ID {question_id} not found"}, 404
-    
+
     solutions = question.get("solutions", [])
-    
+
     return {
         "question_id": question_id,
         "question_title": question["title"],
         "solutions": solutions,
-        "total_solutions": len(solutions)
+        "total_solutions": len(solutions),
     }
 
 
@@ -315,20 +310,22 @@ def get_solutions(question_id):
 def get_solution(question_id, solution_id):
     """Get a specific solution for a question."""
     question = next((q for q in questions if q["id"] == question_id), None)
-    
+
     if not question:
         return {"error": f"Question with ID {question_id} not found"}, 404
-    
+
     solutions = question.get("solutions", [])
     solution = next((s for s in solutions if s["id"] == solution_id), None)
-    
+
     if not solution:
-        return {"error": f"Solution with ID {solution_id} not found for question {question_id}"}, 404
-    
+        return {
+            "error": f"Solution with ID {solution_id} not found for question {question_id}"
+        }, 404
+
     return {
         "question_id": question_id,
         "question_title": question["title"],
-        "solution": solution
+        "solution": solution,
     }
 
 
@@ -337,27 +334,31 @@ def add_solution(question_id):
     """Add a new solution to a question."""
     try:
         question = next((q for q in questions if q["id"] == question_id), None)
-        
+
         if not question:
             return {"error": f"Question with ID {question_id} not found"}, 404
-        
+
         data = request.get_json()
-        
+
         if not data:
             return {"error": "No data provided"}, 400
-        
+
         required_fields = ["title", "description", "code"]
         for field in required_fields:
             if field not in data:
                 return {"error": f"Missing required field: {field}"}, 400
-        
+
         # Initialize solutions list if it doesn't exist
         if "solutions" not in question:
             question["solutions"] = []
-        
+
         # Generate new solution ID
-        new_id = max(s["id"] for s in question["solutions"]) + 1 if question["solutions"] else 1
-        
+        new_id = (
+            max(s["id"] for s in question["solutions"]) + 1
+            if question["solutions"]
+            else 1
+        )
+
         new_solution = {
             "id": new_id,
             "title": data["title"],
@@ -365,16 +366,13 @@ def add_solution(question_id):
             "code": data["code"],
             "time_complexity": data.get("time_complexity", "Not specified"),
             "space_complexity": data.get("space_complexity", "Not specified"),
-            "approach": data.get("approach", "Not specified")
+            "approach": data.get("approach", "Not specified"),
         }
-        
+
         question["solutions"].append(new_solution)
-        
-        return {
-            "message": "Solution added successfully",
-            "solution": new_solution
-        }, 201
-        
+
+        return {"message": "Solution added successfully", "solution": new_solution}, 201
+
     except Exception as e:
         return {"error": f"Failed to add solution: {str(e)}"}, 500
 
@@ -389,7 +387,7 @@ flashcard_game = FlashcardGame()
 @app.route("/flashcard")
 def flashcard_interface():
     """Flashcard game web interface."""
-    return render_template('flashcard.html')
+    return render_template("flashcard.html")
 
 
 @app.route("/flashcard/start", methods=["POST"])
@@ -399,16 +397,15 @@ def start_flashcard_session():
         data = request.get_json() or {}
         category = data.get("category")
         difficulty = data.get("difficulty")
-        
-        count = flashcard_game.set_question_pool(category=category, difficulty=difficulty)
-        
+
+        count = flashcard_game.set_question_pool(
+            category=category, difficulty=difficulty
+        )
+
         return {
             "message": "Flashcard session started",
             "questions_loaded": count,
-            "filters": {
-                "category": category,
-                "difficulty": difficulty
-            }
+            "filters": {"category": category, "difficulty": difficulty},
         }
     except Exception as e:
         return {"error": f"Failed to start session: {str(e)}"}, 500
@@ -418,17 +415,17 @@ def start_flashcard_session():
 def get_flashcard_question():
     """Get the next flashcard question."""
     question = flashcard_game.get_next_question()
-    
+
     if not question:
         return {"message": "No more questions available"}, 404
-    
+
     return {
         "question": {
             "id": question["id"],
             "title": question["title"],
             "category": question["category"],
             "difficulty": question["difficulty"],
-            "problem": question["problem"]
+            "problem": question["problem"],
         }
     }
 
@@ -438,7 +435,7 @@ def get_flashcard_hint():
     """Get hints for current question."""
     if not flashcard_game.current_question:
         return {"error": "No active question"}, 404
-    
+
     hints = flashcard_game.current_question.get("hints", [])
     return {"hints": hints}
 
@@ -448,10 +445,8 @@ def get_flashcard_solution():
     """Get solution for current question."""
     if not flashcard_game.current_question:
         return {"error": "No active question"}, 404
-    
-    return {
-        "solution": flashcard_game.current_question["solution"]
-    }
+
+    return {"solution": flashcard_game.current_question["solution"]}
 
 
 @app.route("/flashcard/answer", methods=["POST"])
@@ -460,13 +455,10 @@ def submit_flashcard_answer():
     try:
         data = request.get_json()
         is_correct = data.get("correct", False)
-        
+
         flashcard_game.record_answer(is_correct)
-        
-        return {
-            "message": "Answer recorded",
-            "correct": is_correct
-        }
+
+        return {"message": "Answer recorded", "correct": is_correct}
     except Exception as e:
         return {"error": f"Failed to record answer: {str(e)}"}, 500
 
@@ -476,7 +468,7 @@ def get_flashcard_stats():
     """Get flashcard statistics."""
     return {
         "overall_stats": flashcard_game.stats,
-        "session_stats": flashcard_game.session_stats
+        "session_stats": flashcard_game.session_stats,
     }
 
 
@@ -484,11 +476,8 @@ def get_flashcard_stats():
 def get_flashcard_categories():
     """Get available categories for flashcard game."""
     from questions import get_categories, get_difficulties
-    
-    return {
-        "categories": get_categories(),
-        "difficulties": get_difficulties()
-    }
+
+    return {"categories": get_categories(), "difficulties": get_difficulties()}
 
 
 if __name__ == "__main__":
