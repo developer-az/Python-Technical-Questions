@@ -1,9 +1,16 @@
 """Game logic and flashcard functionality for LeetCode practice tool."""
+
 import random
 import json
 import os
 from datetime import datetime
-from questions import get_all_questions, get_questions_by_category, get_questions_by_difficulty, get_categories, get_difficulties
+from questions import (
+    get_all_questions,
+    get_questions_by_category,
+    get_questions_by_difficulty,
+    get_categories,
+    get_difficulties,
+)
 
 
 class FlashcardGame:
@@ -12,17 +19,17 @@ class FlashcardGame:
         self.question_pool = []
         self.stats = self.load_stats()
         self.session_stats = {
-            'questions_answered': 0,
-            'correct_answers': 0,
-            'start_time': datetime.now()
+            "questions_answered": 0,
+            "correct_answers": 0,
+            "start_time": datetime.now(),
         }
 
     def load_stats(self):
         """Load user statistics from file."""
-        stats_file = 'leetcode_stats.json'
+        stats_file = "leetcode_stats.json"
         if os.path.exists(stats_file):
             try:
-                with open(stats_file, 'r') as f:
+                with open(stats_file, "r") as f:
                     return json.load(f)
             except:
                 return self.get_default_stats()
@@ -31,19 +38,19 @@ class FlashcardGame:
     def get_default_stats(self):
         """Get default statistics structure."""
         return {
-            'total_questions': 0,
-            'correct_answers': 0,
-            'questions_by_category': {},
-            'questions_by_difficulty': {},
-            'last_session': None,
-            'streak': 0
+            "total_questions": 0,
+            "correct_answers": 0,
+            "questions_by_category": {},
+            "questions_by_difficulty": {},
+            "last_session": None,
+            "streak": 0,
         }
 
     def save_stats(self):
         """Save user statistics to file."""
-        stats_file = 'leetcode_stats.json'
+        stats_file = "leetcode_stats.json"
         try:
-            with open(stats_file, 'w') as f:
+            with open(stats_file, "w") as f:
                 json.dump(self.stats, f, indent=2)
         except Exception as e:
             print(f"Warning: Could not save stats: {e}")
@@ -53,6 +60,7 @@ class FlashcardGame:
         if category and difficulty:
             # Get questions from specific category and difficulty
             from questions import QUESTIONS
+
             if category in QUESTIONS and difficulty in QUESTIONS[category]:
                 self.question_pool = QUESTIONS[category][difficulty].copy()
             else:
@@ -89,20 +97,20 @@ class FlashcardGame:
         output.append(f"🏷️  Category: {q['category']} | Difficulty: {q['difficulty']}")
         output.append("=" * 80)
         output.append("")
-        output.append(q['problem'])
+        output.append(q["problem"])
         output.append("")
         output.append("=" * 80)
         return "\n".join(output)
 
     def show_hints(self):
         """Show hints for the current question."""
-        if not self.current_question or 'hints' not in self.current_question:
+        if not self.current_question or "hints" not in self.current_question:
             return "No hints available for this question."
 
         output = []
         output.append("💡 HINTS:")
         output.append("-" * 40)
-        for i, hint in enumerate(self.current_question['hints'], 1):
+        for i, hint in enumerate(self.current_question["hints"], 1):
             output.append(f"{i}. {hint}")
         output.append("")
         return "\n".join(output)
@@ -115,7 +123,7 @@ class FlashcardGame:
         output = []
         output.append("✅ SOLUTION:")
         output.append("-" * 40)
-        output.append(self.current_question['solution'])
+        output.append(self.current_question["solution"])
         output.append("")
         return "\n".join(output)
 
@@ -125,47 +133,53 @@ class FlashcardGame:
             return
 
         # Update session stats
-        self.session_stats['questions_answered'] += 1
+        self.session_stats["questions_answered"] += 1
         if is_correct:
-            self.session_stats['correct_answers'] += 1
+            self.session_stats["correct_answers"] += 1
 
         # Update overall stats
-        self.stats['total_questions'] += 1
+        self.stats["total_questions"] += 1
         if is_correct:
-            self.stats['correct_answers'] += 1
-            self.stats['streak'] += 1
+            self.stats["correct_answers"] += 1
+            self.stats["streak"] += 1
         else:
-            self.stats['streak'] = 0
+            self.stats["streak"] = 0
 
         # Update category stats
-        category = self.current_question['category']
-        if category not in self.stats['questions_by_category']:
-            self.stats['questions_by_category'][category] = {'total': 0, 'correct': 0}
-        self.stats['questions_by_category'][category]['total'] += 1
+        category = self.current_question["category"]
+        if category not in self.stats["questions_by_category"]:
+            self.stats["questions_by_category"][category] = {"total": 0, "correct": 0}
+        self.stats["questions_by_category"][category]["total"] += 1
         if is_correct:
-            self.stats['questions_by_category'][category]['correct'] += 1
+            self.stats["questions_by_category"][category]["correct"] += 1
 
         # Update difficulty stats
-        difficulty = self.current_question['difficulty']
-        if difficulty not in self.stats['questions_by_difficulty']:
-            self.stats['questions_by_difficulty'][difficulty] = {'total': 0, 'correct': 0}
-        self.stats['questions_by_difficulty'][difficulty]['total'] += 1
+        difficulty = self.current_question["difficulty"]
+        if difficulty not in self.stats["questions_by_difficulty"]:
+            self.stats["questions_by_difficulty"][difficulty] = {
+                "total": 0,
+                "correct": 0,
+            }
+        self.stats["questions_by_difficulty"][difficulty]["total"] += 1
         if is_correct:
-            self.stats['questions_by_difficulty'][difficulty]['correct'] += 1
+            self.stats["questions_by_difficulty"][difficulty]["correct"] += 1
 
         # Update last session
-        self.stats['last_session'] = datetime.now().isoformat()
+        self.stats["last_session"] = datetime.now().isoformat()
 
         # Save stats
         self.save_stats()
 
     def get_session_summary(self):
         """Get a summary of the current session."""
-        if self.session_stats['questions_answered'] == 0:
+        if self.session_stats["questions_answered"] == 0:
             return "No questions answered in this session."
 
-        accuracy = (self.session_stats['correct_answers'] / self.session_stats['questions_answered']) * 100
-        duration = datetime.now() - self.session_stats['start_time']
+        accuracy = (
+            self.session_stats["correct_answers"]
+            / self.session_stats["questions_answered"]
+        ) * 100
+        duration = datetime.now() - self.session_stats["start_time"]
 
         output = []
         output.append("📊 SESSION SUMMARY")
@@ -180,10 +194,12 @@ class FlashcardGame:
 
     def get_overall_stats(self):
         """Get overall user statistics."""
-        if self.stats['total_questions'] == 0:
+        if self.stats["total_questions"] == 0:
             return "No questions answered yet. Start practicing to see your stats!"
 
-        overall_accuracy = (self.stats['correct_answers'] / self.stats['total_questions']) * 100
+        overall_accuracy = (
+            self.stats["correct_answers"] / self.stats["total_questions"]
+        ) * 100
 
         output = []
         output.append("📈 OVERALL STATISTICS")
@@ -194,29 +210,33 @@ class FlashcardGame:
         output.append(f"Current Streak: {self.stats['streak']}")
         output.append("")
 
-        if self.stats['questions_by_category']:
+        if self.stats["questions_by_category"]:
             output.append("📂 BY CATEGORY:")
-            for category, stats in self.stats['questions_by_category'].items():
-                if stats['total'] > 0:
-                    acc = (stats['correct'] / stats['total']) * 100
-                    output.append(f"  {category}: {stats['correct']}/{stats['total']} ({acc:.1f}%)")
+            for category, stats in self.stats["questions_by_category"].items():
+                if stats["total"] > 0:
+                    acc = (stats["correct"] / stats["total"]) * 100
+                    output.append(
+                        f"  {category}: {stats['correct']}/{stats['total']} ({acc:.1f}%)"
+                    )
             output.append("")
 
-        if self.stats['questions_by_difficulty']:
+        if self.stats["questions_by_difficulty"]:
             output.append("⭐ BY DIFFICULTY:")
-            for difficulty, stats in self.stats['questions_by_difficulty'].items():
-                if stats['total'] > 0:
-                    acc = (stats['correct'] / stats['total']) * 100
-                    output.append(f"  {difficulty}: {stats['correct']}/{stats['total']} ({acc:.1f}%)")
+            for difficulty, stats in self.stats["questions_by_difficulty"].items():
+                if stats["total"] > 0:
+                    acc = (stats["correct"] / stats["total"]) * 100
+                    output.append(
+                        f"  {difficulty}: {stats['correct']}/{stats['total']} ({acc:.1f}%)"
+                    )
         return "\n".join(output)
 
     def reset_stats(self):
         """Reset all user statistics."""
         self.stats = self.get_default_stats()
         self.session_stats = {
-            'questions_answered': 0,
-            'correct_answers': 0,
-            'start_time': datetime.now()
+            "questions_answered": 0,
+            "correct_answers": 0,
+            "start_time": datetime.now(),
         }
         self.save_stats()
         return "Statistics have been reset!"
