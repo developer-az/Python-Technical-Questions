@@ -291,7 +291,7 @@ class MultipleChoiceGenerator:
     ) -> List[Dict]:
         """Generate distractor options that are plausible but incorrect."""
         distractors = []
-        # section_type = correct_section["type"]
+        section_type = correct_section["type"]
         # correct_lines = correct_section["lines"]
 
         # Type 1: Common wrong approaches for this section type
