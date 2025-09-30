@@ -2,21 +2,22 @@
   "version": 2,
   "builds": [
     {
-      "src": "api/index.py",
+      "src": "api/app.py",
       "use": "@vercel/python"
     }
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/static/$1"
+    },
+    {
       "src": "/(.*)",
-      "dest": "api/index.py"
+      "dest": "/api/app.py"
     }
   ],
-  "env": {
-    "PYTHON_VERSION": "3.12.3"
-  },
   "functions": {
-    "api/index.py": {
+    "api/app.py": {
       "maxDuration": 30
     }
   }
