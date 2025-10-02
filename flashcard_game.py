@@ -16,17 +16,17 @@ class LeetCodePracticeTool:
     def display_welcome(self):
         """Display welcome message and main menu."""
         print("\n" + "=" * 60)
-        print("🚀 LEETCODE PRACTICE TOOL - FLASHCARD GAME")
+        print("🚀 LEETCODE PRACTICE TOOL - DUOLINGO-STYLE")
         print("=" * 60)
         print("Welcome to your personal LeetCode practice companion!")
-        print("Practice coding problems in a fun, flashcard-style format.")
+        print("Build solutions step-by-step with multiple choice questions.")
         print("=" * 60)
 
     def display_main_menu(self):
         """Display the main menu options."""
         print("\n📋 MAIN MENU:")
         print("-" * 30)
-        print("1. 🎯 Start Practice Session")
+        print("1. 🎯 Start Practice Session (Duolingo-style)")
         print("2. 📊 View Statistics")
         print("3. 🎮 Practice Options")
         print("4. ❓ Help")
@@ -392,14 +392,14 @@ class LeetCodePracticeTool:
 🎯 HOW TO USE:
 1. Select 'Start Practice Session' from the main menu
 2. Choose your practice preferences (category, difficulty, or all questions)
-3. Read each question and think through the solution
-4. Use commands during practice:
-   • 'hint' - Get helpful hints for the current question
-   • 'solution' - View the complete solution with explanation
-   • 'correct' - Mark your answer as correct (if you solved it)
-   • 'wrong' - Mark your answer as wrong (for honest practice)
-   • 'skip' - Skip the current question
-   • 'quit' - End the practice session
+3. Build each solution section by section with multiple choice questions
+4. For each section:
+   • Read the problem description
+   • Review the section description and key concepts
+   • Choose the correct code from 4 multiple choice options
+   • Get instant feedback on your choice
+   • See the solution build up as you progress
+   • Type 'quit' at any time to end the session
 
 📊 STATISTICS:
 The tool tracks your progress including:
@@ -408,22 +408,24 @@ The tool tracks your progress including:
 • Performance by category and difficulty
 • Current streak of correct answers
 
-🎮 PRACTICE MODES:
+🎮 PRACTICE FILTERS:
 • Random: Practice questions from all categories
 • Category Filter: Focus on specific topics (arrays, strings, etc.)
 • Difficulty Filter: Practice easy, medium, or hard questions
 • Specific Filter: Combine category and difficulty
 
-🎯 LEARNING STYLES:
-• Traditional Flashcard: Review complete solutions at once
-• Progressive Learning (Duolingo-style): Build solutions section by section
-  with multiple choice questions for each part. This helps you truly
-  understand each component of the solution!
+🎯 DUOLINGO-STYLE LEARNING:
+• Build solutions section by section (function definitions, loops, conditionals, etc.)
+• Each section presents 4 multiple choice options
+• Get instant feedback with explanations for correct and incorrect choices
+• Wrong answers allow you to retry without penalty
+• Watch your solution grow as you make correct choices
+• Complete solution shown at the end
 
 💡 TIPS:
-• Be honest about your answers to track real progress
-• Use hints before looking at solutions
-• Review solutions even if you got the answer right
+• Read each section description and key concepts carefully
+• Think through the logic before selecting your answer
+• Learn from the feedback on incorrect choices
 • Practice regularly to improve your streak
 
 Press Enter to continue..."""
@@ -439,20 +441,11 @@ Press Enter to continue..."""
             choice = self.get_user_choice(5)
 
             if choice == 1:
-                # Start Practice Session
+                # Start Practice Session - Progressive Learning (Duolingo-style)
                 if self.setup_practice_session():
-                    # Ask user to choose practice mode
-                    self.display_mode_selection_menu()
-                    mode_choice = self.get_user_choice(3)
-
-                    if mode_choice == 1:
-                        # Traditional flashcard mode
-                        self.run_practice_session()
-                    elif mode_choice == 2:
-                        # Progressive learning mode
-                        self.game.enable_progressive_mode(True)
-                        self.run_progressive_practice_session()
-                        self.game.enable_progressive_mode(False)
+                    self.game.enable_progressive_mode(True)
+                    self.run_progressive_practice_session()
+                    self.game.enable_progressive_mode(False)
 
             elif choice == 2:
                 # View Statistics
