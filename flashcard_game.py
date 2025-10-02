@@ -4,7 +4,6 @@ A full-fledged practice tool for common LeetCode questions in a flashcard-like g
 """
 
 import sys
-import os
 from game import FlashcardGame
 from questions import get_categories, get_difficulties
 
@@ -44,6 +43,16 @@ class LeetCodePracticeTool:
         print("4. 🎯 Specific Category + Difficulty")
         print("5. 📈 View Available Filters")
         print("6. 🔙 Back to Main Menu")
+        print("")
+
+    def display_mode_selection_menu(self):
+        """Display practice mode selection menu."""
+        print("\n🎮 SELECT PRACTICE MODE:")
+        print("-" * 40)
+        print("1. 📚 Traditional Flashcard (Full Solutions)")
+        print("2. 🎯 Progressive Learning (Duolingo-style)")
+        print("   Build solutions step-by-step with multiple choice")
+        print("3. 🔙 Back")
         print("")
 
     def get_user_choice(self, max_choice):
@@ -220,6 +229,143 @@ class LeetCodePracticeTool:
         # Show session summary
         print(self.game.get_session_summary())
 
+    def run_progressive_practice_session(self):
+        """Run a progressive learning practice session (Duolingo-style)."""
+        print("\n" + "=" * 60)
+        print("🎯 PROGRESSIVE LEARNING MODE - Build Solutions Step by Step")
+        print("=" * 60)
+        print("Instructions:")
+        print("• You'll build each solution section by section")
+        print("• Choose the correct code from multiple choice options")
+        print("• Get instant feedback on each choice")
+        print("• Type 'quit' at any time to end the session")
+        print("=" * 60)
+
+        while True:
+            question = self.game.get_next_question()
+            if not question:
+                print(
+                    "\n🎉 Congratulations! You've completed all questions in this set!"
+                )
+                break
+
+            # Start progressive learning for this question
+            progressive_data = self.game.start_progressive_question()
+            if not progressive_data:
+                print("❌ Could not start progressive session for this question.")
+                continue
+
+            # Show question details
+            print("\n" + "=" * 80)
+            print(f"📚 QUESTION {question['id']}: {question['title']}")
+            print(
+                f"🏷️  Category: {question['category']} | Difficulty: {question['difficulty']}"
+            )
+            print("=" * 80)
+            print(question["problem"])
+            print("=" * 80)
+            print(
+                f"\n🎯 You'll build the solution in {progressive_data['total_sections']} sections"
+            )
+            print("Let's begin!\n")
+
+            # Process each section
+            question_complete = False
+            while not question_complete:
+                section_data = self.game.get_current_section_with_choices()
+                if not section_data:
+                    question_complete = True
+                    break
+
+                # Show progress
+                section_num = section_data["section_index"] + 1
+                total_sections = section_data["total_sections"]
+                progress = section_data["progress_percentage"]
+
+                print("\n" + "-" * 60)
+                print(
+                    f"📍 Section {section_num}/{total_sections} ({progress:.0f}% complete)"
+                )
+                print(f"📝 {section_data['section']['description']}")
+
+                # Show key concepts if available
+                if section_data["section"].get("key_concepts"):
+                    concepts = ", ".join(section_data["section"]["key_concepts"])
+                    print(f"💡 Key concepts: {concepts}")
+
+                print("-" * 60)
+
+                # Show what's been built so far
+                if section_data["built_so_far"]:
+                    print("\n✅ Solution built so far:")
+                    print("```")
+                    print(section_data["built_so_far"])
+                    print("```")
+
+                # Show choices
+                print("\n🔍 Choose the correct code for this section:")
+                print("")
+                for i, choice in enumerate(section_data["choices"], 1):
+                    print(f"{i}. {choice['text']}")
+                    print("")
+
+                # Get user choice
+                while True:
+                    user_input = (
+                        input(
+                            f"👉 Enter your choice (1-{len(section_data['choices'])}) or 'quit': "
+                        )
+                        .strip()
+                        .lower()
+                    )
+
+                    if user_input == "quit":
+                        print("\n📊 Ending practice session...")
+                        print(self.game.get_session_summary())
+                        return
+
+                    if user_input.isdigit():
+                        choice_num = int(user_input)
+                        if 1 <= choice_num <= len(section_data["choices"]):
+                            # Submit the choice (convert to 0-indexed)
+                            result = self.game.submit_section_choice(choice_num - 1)
+
+                            # Show feedback
+                            if result["correct"]:
+                                print(f"\n✅ Correct! {result['feedback']}")
+
+                                # Check if question is complete
+                                if result.get("question_complete"):
+                                    print("\n🎉 Question Complete!")
+                                    print("\n📋 Complete Solution:")
+                                    print("```")
+                                    print(result["complete_solution"])
+                                    print("```")
+                                    question_complete = True
+                                else:
+                                    print("Moving to next section...")
+                                break
+                            else:
+                                print(f"\n❌ Incorrect. {result['feedback']}")
+                                print("Try again!")
+                                # Refresh the choices display
+                                continue
+                        else:
+                            num_choices = len(section_data["choices"])
+                            print(
+                                f"❌ Invalid choice. Enter a number between 1 and "
+                                f"{num_choices}"
+                            )
+                    else:
+                        num_choices = len(section_data["choices"])
+                        print(
+                            f"❌ Invalid input. Enter a number between 1 and "
+                            f"{num_choices} or 'quit'"
+                        )
+
+        # Show session summary
+        print("\n" + self.game.get_session_summary())
+
     def show_statistics(self):
         """Display user statistics."""
         print("\n" + self.game.get_overall_stats())
@@ -268,6 +414,12 @@ The tool tracks your progress including:
 • Difficulty Filter: Practice easy, medium, or hard questions
 • Specific Filter: Combine category and difficulty
 
+🎯 LEARNING STYLES:
+• Traditional Flashcard: Review complete solutions at once
+• Progressive Learning (Duolingo-style): Build solutions section by section
+  with multiple choice questions for each part. This helps you truly
+  understand each component of the solution!
+
 💡 TIPS:
 • Be honest about your answers to track real progress
 • Use hints before looking at solutions
@@ -289,7 +441,18 @@ Press Enter to continue..."""
             if choice == 1:
                 # Start Practice Session
                 if self.setup_practice_session():
-                    self.run_practice_session()
+                    # Ask user to choose practice mode
+                    self.display_mode_selection_menu()
+                    mode_choice = self.get_user_choice(3)
+
+                    if mode_choice == 1:
+                        # Traditional flashcard mode
+                        self.run_practice_session()
+                    elif mode_choice == 2:
+                        # Progressive learning mode
+                        self.game.enable_progressive_mode(True)
+                        self.run_progressive_practice_session()
+                        self.game.enable_progressive_mode(False)
 
             elif choice == 2:
                 # View Statistics
