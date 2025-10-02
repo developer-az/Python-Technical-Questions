@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Progressive Learning - Python Technical Questions</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" media="print" onload="this.media='all'">
+    <style>
+        .code-section {
+            transition: all 0.3s ease;
+            border-left: 4px solid #e5e7eb;
+        }
+        .code-section.completed {
+            border-left-color: #10b981;
+            background-color: #f0fdf4;
+        }
+        .code-section.current {
+            border-left-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .choice-button {
+            transition: all 0.2s ease;
+        }
+        .choice-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+        .choice-correct {
+            background-color: #dcfce7;
+            border-color: #22c55e;
+        }
+        .choice-incorrect {
+            background-color: #fef2f2;
+            border-color: #ef4444;
+        }
+        .progress-bar {
+            transition: width 0.5s ease;
+        }
+        .fade-in {
+            animation: fadeIn 0.5s ease-in;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .pulse-success {
+            animation: pulseSuccess 0.6s ease;
+        }
+        @keyframes pulseSuccess {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-blue-50 to-indigo-100 min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <div class="text-center mb-8">
+            <h1 class="text-4xl font-bold text-gray-800 mb-2">🧩 Progressive Code Learning</h1>
+            <p class="text-gray-600">Build solutions step by step, Duolingo-style!</p>
+            <div class="mt-4">
+                <a href="/flashcard" class="text-blue-500 hover:text-blue-700 mr-4">← Back to Regular Flashcards</a>
+                <a href="/" class="text-blue-500 hover:text-blue-700">← Home</a>
+            </div>
+        </div>
+
+        <!-- Session Setup -->
+        <div id="session-setup" class="bg-white rounded-lg shadow-lg p-8 mb-8 max-w-2xl mx-auto">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 text-center">🚀 Start Progressive Learning</h2>
+            
+            <div class="grid md:grid-cols-2 gap-4 mb-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Category (Optional)</label>
+                    <select id="category-select" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Categories</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Difficulty (Optional)</label>
+                    <select id="difficulty-select" class="w-full border border-gray-300 rounded-lg px-4 py-2 focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="">All Difficulties</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="text-center">
+                <button onclick="startProgressiveSession()" class="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-8 py-3 rounded-lg transition-all transform hover:scale-105 font-semibold">
+                    🧩 Start Progressive Learning
+                </button>
+            </div>
+        </div>
+
+        <!-- Game Interface -->
+        <div id="game-interface" class="hidden">
+            <!-- Progress Bar -->
+            <div class="bg-white rounded-lg shadow-lg p-4 mb-6">
+                <div class="flex justify-between items-center mb-2">
+                    <span class="text-sm font-medium text-gray-700">Progress</span>
+                    <span id="progress-text" class="text-sm text-gray-600">0 / 0 sections</span>
+                </div>
+                <div class="w-full bg-gray-200 rounded-full h-3">
+                    <div id="progress-bar" class="progress-bar bg-gradient-to-r from-blue-500 to-indigo-600 h-3 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+
+            <!-- Question Display -->
+            <div class="bg-white rounded-lg shadow-lg p-8 mb-6">
+                <div class="flex justify-between items-start mb-4">
+                    <h3 id="question-title" class="text-2xl font-bold text-gray-800"></h3>
+                    <div class="flex gap-2">
+                        <span id="question-category" class="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium"></span>
+                        <span id="question-difficulty" class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium"></span>
+                    </div>
+                </div>
+                <div id="question-problem" class="text-gray-700 leading-relaxed whitespace-pre-wrap mb-4"></div>
+                
+                <div class="bg-gray-50 rounded-lg p-4">
+                    <h4 class="font-semibold text-gray-800 mb-2">💡 Your Task:</h4>
+                    <p class="text-gray-600">Choose the correct code section from the options below to build the complete solution step by step!</p>
+                </div>
+            </div>
+
+            <!-- Built Solution Display -->
+            <div id="built-solution-container" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <h4 class="text-lg font-semibold text-gray-800 mb-3">🔨 Solution Being Built:</h4>
+                <pre id="built-solution" class="bg-gray-100 p-4 rounded border text-sm font-mono text-gray-800 min-h-[100px]">// Your solution will appear here as you make correct choices...</pre>
+            </div>
+
+            <!-- Current Section -->
+            <div id="current-section" class="bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div class="flex items-center mb-4">
+                    <span class="bg-blue-500 text-white px-3 py-1 rounded-full text-sm font-medium mr-3">
+                        Section <span id="section-number">1</span>
+                    </span>
+                    <h4 id="section-description" class="text-lg font-semibold text-gray-800"></h4>
+                </div>
+                
+                <div class="mb-4">
+                    <p class="text-gray-600 text-sm mb-2">Choose the correct code for this section:</p>
+                    <div id="key-concepts" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- Multiple Choice Options -->
+                <div id="choices-container" class="space-y-3">
+                    <!-- Choices will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <!-- Feedback Section -->
+            <div id="feedback-section" class="hidden bg-white rounded-lg shadow-lg p-6 mb-6">
+                <div id="feedback-content"></div>
+                <div class="mt-4 flex gap-3">
+                    <button id="continue-btn" onclick="continueToNext()" class="hidden bg-green-500 hover:bg-green-600 text-white px-6 py-2 rounded-lg transition-colors">
+                        ✅ Continue
+                    </button>
+                    <button id="try-again-btn" onclick="tryAgain()" class="hidden bg-orange-500 hover:bg-orange-600 text-white px-6 py-2 rounded-lg transition-colors">
+                        🔄 Try Again
+                    </button>
+                </div>
+            </div>
+
+            <!-- Completion Section -->
+            <div id="completion-section" class="hidden bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg p-8 mb-6">
+                <div class="text-center">
+                    <div class="text-6xl mb-4">🎉</div>
+                    <h3 class="text-2xl font-bold text-green-800 mb-4">Question Complete!</h3>
+                    <p class="text-green-700 mb-4">You've successfully built the complete solution!</p>
+                    
+                    <div class="bg-white rounded-lg p-4 mb-6">
+                        <h4 class="font-semibold text-gray-800 mb-2">✨ Complete Solution:</h4>
+                        <pre id="complete-solution" class="bg-gray-100 p-4 rounded border text-sm font-mono text-gray-800 text-left"></pre>
+                    </div>
+                    
+                    <div class="flex gap-4 justify-center">
+                        <button onclick="nextQuestion()" class="bg-blue-500 hover:bg-blue-600 text-white px-6 py-3 rounded-lg transition-colors">
+                            ➡️ Next Question
+                        </button>
+                        <button onclick="restartSession()" class="bg-gray-500 hover:bg-gray-600 text-white px-6 py-3 rounded-lg transition-colors">
+                            🔄 New Session
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Session Complete -->
+            <div id="session-complete" class="hidden bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 rounded-lg p-8">
+                <div class="text-center">
+                    <div class="text-6xl mb-4">🏆</div>
+                    <h3 class="text-2xl font-bold text-purple-800 mb-4">Session Complete!</h3>
+                    <p class="text-purple-700 mb-6">Great job! You've completed all available questions.</p>
+                    <button onclick="restartSession()" class="bg-purple-500 hover:bg-purple-600 text-white px-8 py-3 rounded-lg transition-colors">
+                        🚀 Start New Session
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = window.location.origin.replace('5001', '5000');
+        let currentProgressiveData = null;
+        let currentSectionData = null;
+
+        // Load categories and difficulties on page load
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadCategories();
+        });
+
+        async function loadCategories() {
+            try {
+                const response = await fetch(`${API_BASE}/flashcard/categories`);
+                const data = await response.json();
+                
+                const categorySelect = document.getElementById('category-select');
+                const difficultySelect = document.getElementById('difficulty-select');
+                
+                data.categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase());
+                    categorySelect.appendChild(option);
+                });
+                
+                data.difficulties.forEach(difficulty => {
+                    const option = document.createElement('option');
+                    option.value = difficulty;
+                    option.textContent = difficulty.charAt(0).toUpperCase() + difficulty.slice(1);
+                    difficultySelect.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        async function startProgressiveSession() {
+            const category = document.getElementById('category-select').value;
+            const difficulty = document.getElementById('difficulty-select').value;
+            
+            try {
+                const response = await fetch(`${API_BASE}/flashcard/progressive/start`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, difficulty })
+                });
+                
+                const data = await response.json();
+                
+                if (data.progressive_data) {
+                    document.getElementById('session-setup').classList.add('hidden');
+                    document.getElementById('game-interface').classList.remove('hidden');
+                    
+                    currentProgressiveData = data.progressive_data;
+                    displayProgressiveQuestion(data.progressive_data);
+                } else {
+                    alert(data.error || 'Failed to start progressive session');
+                }
+            } catch (error) {
+                console.error('Error starting progressive session:', error);
+                alert('Failed to start session.');
+            }
+        }
+
+        function displayProgressiveQuestion(progressiveData) {
+            const question = progressiveData.question;
+            const sectionData = progressiveData.first_section;
+            
+            // Display question info
+            document.getElementById('question-title').textContent = question.title;
+            document.getElementById('question-category').textContent = question.category;
+            document.getElementById('question-difficulty').textContent = question.difficulty;
+            document.getElementById('question-problem').textContent = question.problem;
+            
+            // Display first section
+            displayCurrentSection(sectionData);
+            updateProgress(sectionData);
+            
+            currentSectionData = sectionData;
+        }
+
+        function displayCurrentSection(sectionData) {
+            const section = sectionData.section;
+            const choices = sectionData.choices;
+            
+            // Update section info
+            document.getElementById('section-number').textContent = sectionData.section_index + 1;
+            document.getElementById('section-description').textContent = section.description;
+            
+            // Update built solution
+            const builtSolution = sectionData.built_so_far || '// Your solution will appear here as you make correct choices...';
+            document.getElementById('built-solution').textContent = builtSolution;
+            
+            // Display key concepts
+            const conceptsContainer = document.getElementById('key-concepts');
+            conceptsContainer.innerHTML = '';
+            if (section.key_concepts && section.key_concepts.length > 0) {
+                section.key_concepts.forEach(concept => {
+                    const tag = document.createElement('span');
+                    tag.className = 'bg-blue-100 text-blue-800 px-2 py-1 rounded text-sm';
+                    tag.textContent = concept;
+                    conceptsContainer.appendChild(tag);
+                });
+            }
+            
+            // Display choices
+            const choicesContainer = document.getElementById('choices-container');
+            choicesContainer.innerHTML = '';
+            
+            choices.forEach((choice, index) => {
+                const choiceDiv = document.createElement('div');
+                choiceDiv.className = 'choice-button border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:border-blue-300 transition-all';
+                choiceDiv.onclick = () => submitChoice(index);
+                
+                const choiceContent = document.createElement('pre');
+                choiceContent.className = 'text-sm font-mono text-gray-800 whitespace-pre-wrap';
+                choiceContent.textContent = choice.text;
+                
+                choiceDiv.appendChild(choiceContent);
+                choicesContainer.appendChild(choiceDiv);
+            });
+            
+            // Hide feedback section
+            document.getElementById('feedback-section').classList.add('hidden');
+        }
+
+        async function submitChoice(choiceIndex) {
+            try {
+                const response = await fetch(`${API_BASE}/flashcard/progressive/submit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ choice_index: choiceIndex })
+                });
+                
+                const data = await response.json();
+                const result = data.result;
+                
+                displayFeedback(result, choiceIndex);
+                
+            } catch (error) {
+                console.error('Error submitting choice:', error);
+                alert('Failed to submit choice.');
+            }
+        }
+
+        function displayFeedback(result, choiceIndex) {
+            const feedbackSection = document.getElementById('feedback-section');
+            const feedbackContent = document.getElementById('feedback-content');
+            const continueBtn = document.getElementById('continue-btn');
+            const tryAgainBtn = document.getElementById('try-again-btn');
+            
+            // Highlight the selected choice
+            const choices = document.querySelectorAll('.choice-button');
+            choices[choiceIndex].className += result.correct ? ' choice-correct' : ' choice-incorrect';
+            
+            // Show feedback
+            feedbackContent.innerHTML = `
+                <div class="flex items-start gap-3">
+                    <div class="text-2xl">${result.correct ? '✅' : '❌'}</div>
+                    <div>
+                        <h4 class="font-semibold text-lg ${result.correct ? 'text-green-800' : 'text-red-800'}">
+                            ${result.correct ? 'Correct!' : 'Not quite right'}
+                        </h4>
+                        <p class="text-gray-700 mt-1">${result.feedback}</p>
+                    </div>
+                </div>
+            `;
+            
+            feedbackSection.classList.remove('hidden');
+            
+            if (result.correct) {
+                if (result.question_complete) {
+                    // Question is complete
+                    setTimeout(() => {
+                        showCompletion(result.complete_solution);
+                    }, 2000);
+                } else {
+                    // Show continue button
+                    continueBtn.classList.remove('hidden');
+                    tryAgainBtn.classList.add('hidden');
+                }
+            } else {
+                // Show try again button
+                continueBtn.classList.add('hidden');
+                tryAgainBtn.classList.remove('hidden');
+            }
+        }
+
+        function continueToNext() {
+            // Get next section data from the result
+            fetch(`${API_BASE}/flashcard/progressive/section`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.section_data) {
+                        currentSectionData = data.section_data;
+                        displayCurrentSection(data.section_data);
+                        updateProgress(data.section_data);
+                    }
+                })
+                .catch(error => {
+                    console.error('Error getting next section:', error);
+                });
+        }
+
+        function tryAgain() {
+            // Clear feedback and reset choices
+            document.getElementById('feedback-section').classList.add('hidden');
+            
+            // Reset choice styling
+            const choices = document.querySelectorAll('.choice-button');
+            choices.forEach(choice => {
+                choice.className = 'choice-button border-2 border-gray-200 rounded-lg p-4 cursor-pointer hover:border-blue-300 transition-all';
+            });
+        }
+
+        function updateProgress(sectionData) {
+            const progressBar = document.getElementById('progress-bar');
+            const progressText = document.getElementById('progress-text');
+            
+            const current = sectionData.section_index + 1;
+            const total = sectionData.total_sections;
+            const percentage = sectionData.progress_percentage;
+            
+            progressBar.style.width = `${percentage}%`;
+            progressText.textContent = `${current} / ${total} sections`;
+        }
+
+        function showCompletion(completeSolution) {
+            document.getElementById('complete-solution').textContent = completeSolution;
+            document.getElementById('completion-section').classList.remove('hidden');
+            
+            // Add success animation
+            document.getElementById('completion-section').classList.add('pulse-success');
+        }
+
+        async function nextQuestion() {
+            try {
+                const response = await fetch(`${API_BASE}/flashcard/progressive/next`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+                
+                const data = await response.json();
+                
+                if (data.progressive_data) {
+                    // Hide completion and show new question
+                    document.getElementById('completion-section').classList.add('hidden');
+                    currentProgressiveData = data.progressive_data;
+                    displayProgressiveQuestion(data.progressive_data);
+                } else {
+                    // No more questions
+                    document.getElementById('completion-section').classList.add('hidden');
+                    document.getElementById('session-complete').classList.remove('hidden');
+                }
+            } catch (error) {
+                console.error('Error getting next question:', error);
+                alert('Failed to get next question.');
+            }
+        }
+
+        function restartSession() {
+            // Reset UI
+            document.getElementById('game-interface').classList.add('hidden');
+            document.getElementById('completion-section').classList.add('hidden');
+            document.getElementById('session-complete').classList.add('hidden');
+            document.getElementById('session-setup').classList.remove('hidden');
+            
+            // Reset data
+            currentProgressiveData = null;
+            currentSectionData = null;
+        }
+    </script>
+</body>
+</html>

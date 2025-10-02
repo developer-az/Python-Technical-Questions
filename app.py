@@ -390,6 +390,12 @@ def flashcard_interface():
     return render_template("flashcard.html")
 
 
+@app.route("/flashcard/progressive")
+def progressive_flashcard_interface():
+    """Progressive learning flashcard interface."""
+    return render_template("progressive_flashcard.html")
+
+
 @app.route("/flashcard/start", methods=["POST"])
 def start_flashcard_session():
     """Start a new flashcard session."""
@@ -478,6 +484,115 @@ def get_flashcard_categories():
     from questions import get_categories, get_difficulties
 
     return {"categories": get_categories(), "difficulties": get_difficulties()}
+
+
+# Progressive Learning Mode Routes
+@app.route("/flashcard/progressive/start", methods=["POST"])
+def start_progressive_flashcard():
+    """Start a progressive learning session."""
+    try:
+        data = request.get_json() or {}
+        category = data.get("category")
+        difficulty = data.get("difficulty")
+
+        # Set up question pool
+        count = flashcard_game.set_question_pool(
+            category=category, difficulty=difficulty
+        )
+
+        if count == 0:
+            return {"error": "No questions found for the selected filters"}, 404
+
+        # Enable progressive mode
+        flashcard_game.enable_progressive_mode(True)
+
+        # Get first question and start progressive session
+        question = flashcard_game.get_next_question()
+        if not question:
+            return {"error": "No questions available"}, 404
+
+        progressive_data = flashcard_game.start_progressive_question()
+        if not progressive_data:
+            return {"error": "Failed to start progressive session"}, 500
+
+        return {
+            "message": "Progressive flashcard session started",
+            "questions_loaded": count,
+            "filters": {"category": category, "difficulty": difficulty},
+            "progressive_data": progressive_data,
+        }
+    except Exception as e:
+        return {"error": f"Failed to start progressive session: {str(e)}"}, 500
+
+
+@app.route("/flashcard/progressive/section", methods=["GET"])
+def get_current_progressive_section():
+    """Get the current section with multiple choice options."""
+    try:
+        if not flashcard_game.progressive_mode:
+            return {"error": "Progressive mode not enabled"}, 400
+
+        section_data = flashcard_game.get_current_section_with_choices()
+        if not section_data:
+            return {"error": "No current section available"}, 404
+
+        return {"section_data": section_data}
+    except Exception as e:
+        return {"error": f"Failed to get current section: {str(e)}"}, 500
+
+
+@app.route("/flashcard/progressive/submit", methods=["POST"])
+def submit_progressive_choice():
+    """Submit a choice for the current progressive section."""
+    try:
+        data = request.get_json()
+        if not data or "choice_index" not in data:
+            return {"error": "Missing choice_index in request"}, 400
+
+        choice_index = data["choice_index"]
+        result = flashcard_game.submit_section_choice(choice_index)
+
+        return {"result": result}
+    except Exception as e:
+        return {"error": f"Failed to submit choice: {str(e)}"}, 500
+
+
+@app.route("/flashcard/progressive/progress", methods=["GET"])
+def get_progressive_progress():
+    """Get current progress in progressive mode."""
+    try:
+        progress = flashcard_game.get_progressive_progress()
+        if not progress:
+            return {"error": "No progressive session active"}, 404
+
+        return {"progress": progress}
+    except Exception as e:
+        return {"error": f"Failed to get progress: {str(e)}"}, 500
+
+
+@app.route("/flashcard/progressive/next", methods=["POST"])
+def next_progressive_question():
+    """Move to next question in progressive mode."""
+    try:
+        if not flashcard_game.progressive_mode:
+            return {"error": "Progressive mode not enabled"}, 400
+
+        # Reset current progressive session
+        flashcard_game.reset_progressive_session()
+
+        # Get next question
+        question = flashcard_game.get_next_question()
+        if not question:
+            return {"message": "No more questions available"}, 404
+
+        # Start progressive session for new question
+        progressive_data = flashcard_game.start_progressive_question()
+        if not progressive_data:
+            return {"error": "Failed to start progressive session"}, 500
+
+        return {"progressive_data": progressive_data}
+    except Exception as e:
+        return {"error": f"Failed to get next question: {str(e)}"}, 500
 
 
 if __name__ == "__main__":

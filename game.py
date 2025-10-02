@@ -11,6 +11,7 @@ from questions import (
     get_categories,
     get_difficulties,
 )
+from code_sections import CodeSectionParser, MultipleChoiceGenerator
 
 
 class FlashcardGame:
@@ -23,6 +24,15 @@ class FlashcardGame:
             "correct_answers": 0,
             "start_time": datetime.now(),
         }
+
+        # Progressive learning mode
+        self.progressive_mode = False
+        self.code_parser = CodeSectionParser()
+        self.choice_generator = MultipleChoiceGenerator()
+        self.current_sections = []
+        self.current_section_index = 0
+        self.built_solution = []
+        self.current_choices = []  # Store current choices to maintain consistency
 
     def load_stats(self):
         """Load user statistics from file."""
@@ -250,3 +260,118 @@ class FlashcardGame:
         output.append("Difficulties: " + ", ".join(get_difficulties()))
         output.append("")
         return "\n".join(output)
+
+    def enable_progressive_mode(self, enabled=True):
+        """Enable or disable progressive learning mode."""
+        self.progressive_mode = enabled
+
+    def start_progressive_question(self):
+        """Start a progressive learning session for the current question."""
+        if not self.current_question or "solution" not in self.current_question:
+            return None
+
+        # Parse the solution into sections
+        parsed_solution = self.code_parser.parse_solution(
+            self.current_question["solution"]
+        )
+        self.current_sections = parsed_solution["sections"]
+        self.current_section_index = 0
+        self.built_solution = []
+        self.current_choices = []  # Clear choices for new question
+
+        return {
+            "total_sections": len(self.current_sections),
+            "question": self.current_question,
+            "first_section": self.get_current_section_with_choices(),
+        }
+
+    def get_current_section_with_choices(self):
+        """Get the current section with multiple choice options."""
+        if self.current_section_index >= len(self.current_sections):
+            return None
+
+        current_section = self.current_sections[self.current_section_index]
+
+        # Generate new choices only if we don't have current choices or moved to new section
+        if not self.current_choices:
+            self.current_choices = self.choice_generator.generate_choices(
+                current_section, self.current_sections
+            )
+
+        return {
+            "section_index": self.current_section_index,
+            "total_sections": len(self.current_sections),
+            "section": current_section,
+            "choices": self.current_choices,
+            "built_so_far": "\n".join(self.built_solution),
+            "progress_percentage": (
+                self.current_section_index / len(self.current_sections)
+            )
+            * 100,
+        }
+
+    def submit_section_choice(self, choice_index):
+        """
+        Submit a choice for the current section.
+        Returns result with feedback and next section if correct.
+        """
+        if self.current_section_index >= len(self.current_sections):
+            return {"error": "No current section to answer"}
+
+        if not self.current_choices or choice_index >= len(self.current_choices):
+            return {"error": "Invalid choice index"}
+
+        selected_choice = self.current_choices[choice_index]
+        is_correct = selected_choice["is_correct"]
+
+        result = {
+            "correct": is_correct,
+            "feedback": selected_choice["explanation"],
+            "selected_choice": selected_choice,
+            "section_complete": is_correct,
+        }
+
+        if is_correct:
+            # Add this section to built solution
+            self.built_solution.append(selected_choice["text"])
+            self.current_section_index += 1
+            self.current_choices = []  # Clear choices for next section
+
+            # Check if question is complete
+            if self.current_section_index >= len(self.current_sections):
+                result["question_complete"] = True
+                result["complete_solution"] = "\n".join(self.built_solution)
+                # Record this as a correct answer for the overall question
+                self.record_answer(True)
+            else:
+                result["question_complete"] = False
+                result["next_section"] = self.get_current_section_with_choices()
+        else:
+            result["question_complete"] = False
+            # Don't advance, let them try again
+            result["retry_section"] = self.get_current_section_with_choices()
+
+        return result
+
+    def get_progressive_progress(self):
+        """Get current progress in progressive mode."""
+        if not self.progressive_mode or not self.current_sections:
+            return None
+
+        return {
+            "current_section": self.current_section_index,
+            "total_sections": len(self.current_sections),
+            "progress_percentage": (
+                self.current_section_index / len(self.current_sections)
+            )
+            * 100,
+            "sections_completed": self.current_section_index,
+            "built_solution": "\n".join(self.built_solution),
+        }
+
+    def reset_progressive_session(self):
+        """Reset the current progressive learning session."""
+        self.current_sections = []
+        self.current_section_index = 0
+        self.built_solution = []
+        self.current_choices = []
