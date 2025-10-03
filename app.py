@@ -386,8 +386,8 @@ flashcard_game = FlashcardGame()
 
 @app.route("/flashcard")
 def flashcard_interface():
-    """Flashcard game web interface."""
-    return render_template("flashcard.html")
+    """Flashcard game web interface - Redirects to progressive learning."""
+    return render_template("progressive_flashcard.html")
 
 
 @app.route("/flashcard/progressive")
