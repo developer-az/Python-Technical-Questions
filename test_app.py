@@ -1,5 +1,6 @@
 import pytest
 import json
+import uuid
 from app import app
 
 
@@ -16,7 +17,7 @@ def test_home_endpoint(client):
     response = client.get("/")
 
     assert response.status_code == 200
-    assert b"Python Technical Questions Practice Tool" in response.data
+    assert b"Drill" in response.data
     assert b"html" in response.data
 
 
@@ -26,8 +27,9 @@ def test_api_info_endpoint(client):
     data = json.loads(response.data)
 
     assert response.status_code == 200
-    assert data["name"] == "Python Technical Questions Practice Tool"
+    assert "Drill" in data["description"] or "Technical" in data["name"]
     assert "endpoints" in data
+    assert data["version"] == "2.0.0"
 
 
 def test_health_endpoint(client):
@@ -391,3 +393,118 @@ def test_add_solution_missing_fields(client):
 
     assert response.status_code == 400
     assert "error" in data
+
+
+def test_practice_page(client):
+    response = client.get("/practice")
+    assert response.status_code == 200
+    assert b"Practice IDE" in response.data or b"code-editor" in response.data
+
+
+def test_practice_page_with_question(client):
+    response = client.get("/practice/1")
+    assert response.status_code == 200
+
+
+def test_skills_page(client):
+    response = client.get("/skills")
+    assert response.status_code == 200
+    assert b"Skills" in response.data
+
+
+def test_skill_tree_api(client):
+    response = client.get("/api/skills/tree")
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert "pillars" in data
+    assert data["method_count"] > 0
+
+
+def test_method_detail_api(client):
+    response = client.get("/api/skills/methods/hash_map")
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert data["method"]["id"] == "hash_map"
+    assert data["question_count"] >= 1
+    assert data["parents"]
+
+
+def test_practice_question_api(client):
+    response = client.get("/api/practice/1?language=python")
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert data["question"]["id"] == 1
+    assert data["methods"][0]["id"] == "hash_map"
+    assert "starter" in data
+    assert "notepad" in data
+
+
+def test_practice_catalog_api(client):
+    response = client.get("/api/practice/catalog")
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert data["total"] >= 1
+    assert data["questions"][0]["primary_method"]
+
+
+def test_notepad_and_harvest_flow(client):
+    response = client.put(
+        "/api/notes/notepad/1",
+        data=json.dumps({"content": "Use a hash map for complements"}),
+        content_type="application/json",
+    )
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert "hash map" in data["content"].lower()
+
+    unique_cue = (
+        f"# Store the complement in the map for O(1) lookup "
+        f"during harvest-flow-{uuid.uuid4().hex[:8]}\n"
+        "def two_sum(nums, target):\n"
+        "    pass\n"
+    )
+    harvest = client.post(
+        "/api/notes/harvest",
+        data=json.dumps(
+            {
+                "question_id": 1,
+                "method_id": "hash_map",
+                "language": "python",
+                "code": unique_cue,
+            }
+        ),
+        content_type="application/json",
+    )
+    harvested = json.loads(harvest.data)
+    assert harvest.status_code == 200
+    assert harvested["count"] >= 1
+
+    submit = client.post(
+        "/api/practice/submit",
+        data=json.dumps(
+            {
+                "question_id": 1,
+                "code": (
+                    f"# Track indices in a hash map instead of nested loops "
+                    f"{uuid.uuid4().hex[:8]}\n"
+                    "def f():\n"
+                    "    pass\n"
+                ),
+                "language": "python",
+                "notepad": "complement lookup",
+                "mark_solved": True,
+            }
+        ),
+        content_type="application/json",
+    )
+    result = json.loads(submit.data)
+    assert submit.status_code == 200
+    assert result["status"] == "recorded"
+    assert result["next_drill"]["method_id"] == "hash_map"
+
+
+def test_questions_include_methods(client):
+    response = client.get("/questions/1")
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert data["question"]["primary_method"]["id"] == "hash_map"
