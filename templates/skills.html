@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skills — Drill</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="drill-app skills-page">
+    <div class="ambient ambient-a" aria-hidden="true"></div>
+    <div class="ambient ambient-b" aria-hidden="true"></div>
+
+    <header class="topbar">
+        <a class="brand" href="/">
+            <span class="brand-mark">D</span>
+            <span class="brand-name">Drill</span>
+        </a>
+        <nav class="topnav">
+            <a href="/practice">Practice</a>
+            <a href="/skills" class="active">Skills</a>
+            <a href="/flashcard/progressive">Build Mode</a>
+        </nav>
+        <div class="topbar-meta">Form → Skill → Pillar</div>
+    </header>
+
+    <main class="skills-shell">
+        <aside class="path-rail" id="path-rail"></aside>
+        <section class="skills-detail" id="skills-detail">
+            <div class="detail-placeholder">
+                <p class="eyebrow">Skill path</p>
+                <h1>Click a method. Climb. Aggregate.</h1>
+                <p>
+                    Each problem lists its method. Opening that method shows the higher-level skill —
+                    same way learning form on one lift builds the whole movement pattern.
+                </p>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const API = window.location.origin;
+        const FOCUS_METHOD = {{ focus_method|tojson }};
+        const FOCUS_SKILL = {{ focus_skill|tojson }};
+        let tree = null;
+
+        function escapeHtml(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        async function loadTree() {
+            const res = await fetch(`${API}/api/skills/tree`);
+            tree = await res.json();
+            renderRail();
+            if (FOCUS_METHOD) {
+                await showMethod(FOCUS_METHOD);
+            } else if (FOCUS_SKILL) {
+                await showSkill(FOCUS_SKILL);
+            } else if (tree.pillars?.[0]?.skills?.[0]?.methods?.[0]) {
+                await showMethod(tree.pillars[0].skills[0].methods[0].id);
+            }
+        }
+
+        function renderRail() {
+            const rail = document.getElementById('path-rail');
+            rail.innerHTML = tree.pillars.map(pillar => `
+                <div class="pillar-block">
+                    <button type="button" class="pillar-head" data-pillar="${pillar.id}">
+                        <span>${escapeHtml(pillar.name)}</span>
+                        <small>${pillar.question_count} reps</small>
+                    </button>
+                    <div class="skill-stack">
+                        ${pillar.skills.map(skill => `
+                            <div class="skill-node">
+                                <button type="button" class="skill-btn" data-skill="${skill.id}">
+                                    ${escapeHtml(skill.name)}
+                                </button>
+                                <div class="method-stack">
+                                    ${skill.methods.map(m => `
+                                        <button type="button" class="method-btn" data-method="${m.id}">
+                                            <span class="dot"></span>
+                                            <span>${escapeHtml(m.name)}</span>
+                                            <em>${m.question_count}</em>
+                                        </button>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            `).join('');
+
+            rail.querySelectorAll('[data-method]').forEach(btn => {
+                btn.addEventListener('click', () => showMethod(btn.dataset.method));
+            });
+            rail.querySelectorAll('[data-skill]').forEach(btn => {
+                btn.addEventListener('click', () => showSkill(btn.dataset.skill));
+            });
+            rail.querySelectorAll('[data-pillar]').forEach(btn => {
+                btn.addEventListener('click', () => showPillar(btn.dataset.pillar));
+            });
+        }
+
+        function setActive(kind, id) {
+            document.querySelectorAll('.method-btn, .skill-btn, .pillar-head').forEach(el => {
+                el.classList.remove('active');
+            });
+            const sel = kind === 'method' ? `[data-method="${id}"]`
+                : kind === 'skill' ? `[data-skill="${id}"]`
+                : `[data-pillar="${id}"]`;
+            document.querySelectorAll(sel).forEach(el => el.classList.add('active'));
+        }
+
+        async function showMethod(methodId) {
+            setActive('method', methodId);
+            history.replaceState(null, '', `/skills/method/${methodId}`);
+            const res = await fetch(`${API}/api/skills/methods/${methodId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const m = data.method;
+            const parents = data.parents || [];
+            const parent = parents[0];
+
+            document.getElementById('skills-detail').innerHTML = `
+                <div class="detail-card reveal">
+                    <div class="breadcrumb">
+                        ${parent ? `
+                            <a href="#" data-goto-pillar="${parent.pillar.id}">${escapeHtml(parent.pillar.name)}</a>
+                            <span>/</span>
+                            <a href="#" data-goto-skill="${parent.skill.id}">${escapeHtml(parent.skill.name)}</a>
+                            <span>/</span>
+                        ` : ''}
+                        <strong>${escapeHtml(m.name)}</strong>
+                    </div>
+                    <p class="eyebrow">Method · form cue layer</p>
+                    <h1>${escapeHtml(m.name)}</h1>
+                    <p class="lede">${escapeHtml(m.summary)}</p>
+
+                    <div class="cues">
+                        <h2>Form cues</h2>
+                        <ol>
+                            ${(m.form_cues || []).map(c => `<li>${escapeHtml(c)}</li>`).join('')}
+                        </ol>
+                    </div>
+
+                    <div class="agg-parents">
+                        <h2>Aggregates upward to</h2>
+                        <div class="parent-grid">
+                            ${parents.map(p => `
+                                <button type="button" class="parent-card" data-goto-skill="${p.skill.id}">
+                                    <span class="eyebrow">${escapeHtml(p.pillar.name)}</span>
+                                    <strong>${escapeHtml(p.skill.name)}</strong>
+                                    <p>${escapeHtml(p.skill.description)}</p>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="rep-list">
+                        <h2>Problems that train this (${data.question_count})</h2>
+                        <ul>
+                            ${(data.questions || []).map(q => `
+                                <li>
+                                    <a href="/practice/${q.id}">
+                                        <span>${escapeHtml(q.title)}</span>
+                                        <span class="diff-dot diff-${q.difficulty.toLowerCase()}">${q.difficulty}</span>
+                                        ${q.primary ? '<em>primary</em>' : ''}
+                                    </a>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
+                    <div class="notes-agg">
+                        <h2>Technique notes on this method</h2>
+                        ${(data.notes || []).length ? `
+                            <div class="technique-notes">
+                                ${data.notes.map(n => `
+                                    <article class="note-card">
+                                        <p>${escapeHtml(n.text)}</p>
+                                        <footer>
+                                            <a href="/practice/${n.question_id}">Problem #${n.question_id}</a>
+                                            <span>${escapeHtml(n.kind)}</span>
+                                        </footer>
+                                    </article>
+                                `).join('')}
+                            </div>
+                        ` : '<p class="muted">No harvested notes yet. Write comments while practicing, then harvest.</p>'}
+                    </div>
+
+                    ${Object.keys(data.siblings_by_skill || {}).length ? `
+                        <div class="siblings">
+                            <h2>Related methods in the same skill</h2>
+                            <div class="chip-row">
+                                ${Object.entries(data.siblings_by_skill).map(([skillId, sibs]) =>
+                                    sibs.map(s => `
+                                        <button type="button" class="method-chip" data-goto-method="${s.id}">
+                                            <span>${escapeHtml(s.name)}</span>
+                                            <small>${escapeHtml(s.summary)}</small>
+                                        </button>
+                                    `).join('')
+                                ).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            wireDetailLinks();
+        }
+
+        async function showSkill(skillId) {
+            setActive('skill', skillId);
+            history.replaceState(null, '', `/skills/skill/${skillId}`);
+            const res = await fetch(`${API}/api/skills/skills/${skillId}`);
+            if (!res.ok) return;
+            const data = await res.json();
+            const s = data.skill;
+            const p = data.pillar;
+
+            document.getElementById('skills-detail').innerHTML = `
+                <div class="detail-card reveal">
+                    <div class="breadcrumb">
+                        <a href="#" data-goto-pillar="${p.id}">${escapeHtml(p.name)}</a>
+                        <span>/</span>
+                        <strong>${escapeHtml(s.name)}</strong>
+                    </div>
+                    <p class="eyebrow">Skill · movement pattern</p>
+                    <h1>${escapeHtml(s.name)}</h1>
+                    <p class="lede">${escapeHtml(s.description)}</p>
+                    <p class="muted">Pillar: ${escapeHtml(p.tagline)}</p>
+
+                    <div class="method-agg">
+                        <h2>Methods inside this skill</h2>
+                        <div class="chip-row">
+                            ${(data.methods || []).map(m => `
+                                <button type="button" class="method-chip primary" data-goto-method="${m.id}">
+                                    <span>${escapeHtml(m.name)}</span>
+                                    <small>${m.question_count} reps · ${escapeHtml(m.summary)}</small>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="rep-list">
+                        <h2>All reps under this skill (${data.question_count})</h2>
+                        <ul>
+                            ${(data.questions || []).map(q => `
+                                <li>
+                                    <a href="/practice/${q.id}">
+                                        <span>${escapeHtml(q.title)}</span>
+                                        <span class="diff-dot diff-${(q.difficulty || '').toLowerCase()}">${escapeHtml(q.difficulty)}</span>
+                                    </a>
+                                </li>
+                            `).join('')}
+                        </ul>
+                    </div>
+
+                    ${(data.sibling_skills || []).length ? `
+                        <div class="siblings">
+                            <h2>Other skills in ${escapeHtml(p.name)}</h2>
+                            <div class="chip-row">
+                                ${data.sibling_skills.map(sib => `
+                                    <button type="button" class="method-chip" data-goto-skill="${sib.id}">
+                                        <span>${escapeHtml(sib.name)}</span>
+                                    </button>
+                                `).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+            wireDetailLinks();
+        }
+
+        function showPillar(pillarId) {
+            setActive('pillar', pillarId);
+            history.replaceState(null, '', `/skills`);
+            const pillar = tree.pillars.find(p => p.id === pillarId);
+            if (!pillar) return;
+            document.getElementById('skills-detail').innerHTML = `
+                <div class="detail-card reveal">
+                    <p class="eyebrow">Pillar · training block</p>
+                    <h1>${escapeHtml(pillar.name)}</h1>
+                    <p class="lede">${escapeHtml(pillar.tagline)}</p>
+                    <p>${escapeHtml(pillar.description)}</p>
+                    <div class="method-agg">
+                        <h2>Skills in this pillar</h2>
+                        <div class="chip-row">
+                            ${pillar.skills.map(s => `
+                                <button type="button" class="method-chip primary" data-goto-skill="${s.id}">
+                                    <span>${escapeHtml(s.name)}</span>
+                                    <small>${s.question_count} reps</small>
+                                </button>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+            wireDetailLinks();
+        }
+
+        function wireDetailLinks() {
+            document.querySelectorAll('[data-goto-method]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showMethod(el.dataset.gotoMethod);
+                });
+            });
+            document.querySelectorAll('[data-goto-skill]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showSkill(el.dataset.gotoSkill);
+                });
+            });
+            document.querySelectorAll('[data-goto-pillar]').forEach(el => {
+                el.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    showPillar(el.dataset.gotoPillar);
+                });
+            });
+        }
+
+        loadTree();
+    </script>
+</body>
+</html>

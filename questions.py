@@ -18,9 +18,12 @@ Input: nums = [2,7,11,15], target = 9
 Output: [0,1]
 Explanation: Because nums[0] + nums[1] == 9, we return [0, 1].""",
                 "solution": """def two_sum(nums, target):
+    # Method: Hash Map Lookup
+    # Store each number's index so the complement can be found in O(1)
     hash_map = {}
     for i, num in enumerate(nums):
         complement = target - num
+        # Check the map before inserting — order matters for this invariant
         if complement in hash_map:
             return [hash_map[complement], i]
         hash_map[num] = i
@@ -50,6 +53,8 @@ Input: prices = [7,1,5,3,6,4]
 Output: 5
 Explanation: Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 6-1 = 5.""",
                 "solution": """def max_profit(prices):
+    # Method: Greedy Single Pass
+    # Keep a running minimum price as the only history you need
     if not prices:
         return 0
     
@@ -60,6 +65,7 @@ Explanation: Buy on day 2 (price = 1) and sell on day 5 (price = 6), profit = 6-
         if price < min_price:
             min_price = price
         else:
+            # Update the answer whenever selling today beats the best so far
             max_profit = max(max_profit, price - min_price)
     
     return max_profit

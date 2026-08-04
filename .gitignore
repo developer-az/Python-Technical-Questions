@@ -73,4 +73,6 @@ Thumbs.db
 
 # User data files
 leetcode_stats.json
+user_notes.json
+user_notes.json.tmp
 .vercel

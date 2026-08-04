@@ -1,11 +1,31 @@
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, request, render_template
 from cli import load_questions
-import json
+
+from skills import (
+    LANGUAGE_STARTERS,
+    annotate_question,
+    get_method_detail,
+    get_skill_detail,
+    get_skill_tree,
+    get_methods_for_question,
+    get_primary_method_id,
+    starter_template,
+)
+from notes import notes_store
 
 app = Flask(__name__)
 
 # Load questions from CLI module
 questions = load_questions()
+
+
+def _annotated(question):
+    """Attach method metadata for API/UI consumers."""
+    return annotate_question(question)
+
+
+def _find_question(question_id):
+    return next((q for q in questions if q["id"] == question_id), None)
 
 
 # Simple CORS headers
@@ -27,9 +47,9 @@ def home():
 def api_info():
     """API information endpoint."""
     return {
-        "name": "Python Technical Questions Practice Tool",
-        "version": "1.0.0",
-        "description": "A comprehensive API for practicing Python technical interview questions",
+        "name": "Drill",
+        "version": "2.0.0",
+        "description": "Drill — interview-style coding practice with skill methods, IDE, and technique notes",
         "endpoints": {
             "GET /": "Web interface",
             "GET /api": "API information",
@@ -80,9 +100,10 @@ def get_questions():
     if limit:
         filtered_questions = filtered_questions[:limit]
 
+    annotated = [_annotated(q) for q in filtered_questions]
     return {
-        "questions": filtered_questions,
-        "total": len(filtered_questions),
+        "questions": annotated,
+        "total": len(annotated),
         "filters": {"difficulty": difficulty, "limit": limit},
     }
 
@@ -95,7 +116,7 @@ def get_question(question_id):
     if not question:
         return {"error": f"Question with ID {question_id} not found"}, 404
 
-    return {"question": question}
+    return {"question": _annotated(question)}
 
 
 @app.route("/questions/difficulty/<difficulty>", methods=["GET"])
@@ -215,7 +236,7 @@ def get_random_question():
 
     random_question = random.choice(available_questions)
 
-    return {"question": random_question, "practice_mode": True}
+    return {"question": _annotated(random_question), "practice_mode": True}
 
 
 @app.route("/practice/submit", methods=["POST"])
@@ -593,6 +614,260 @@ def next_progressive_question():
         return {"progressive_data": progressive_data}
     except Exception as e:
         return {"error": f"Failed to get next question: {str(e)}"}, 500
+
+
+# ---------------------------------------------------------------------------
+# Drill platform: skills, practice IDE, notes
+# ---------------------------------------------------------------------------
+
+
+@app.route("/practice")
+@app.route("/practice/<int:question_id>")
+def practice_interface(question_id=None):
+    """Interview-style practice IDE with notepad and method chips."""
+    return render_template("practice.html", question_id=question_id)
+
+
+@app.route("/skills")
+def skills_interface():
+    """Skill tree / method aggregation UI."""
+    return render_template("skills.html", focus_method=None, focus_skill=None)
+
+
+@app.route("/skills/method/<method_id>")
+def method_interface(method_id):
+    """Deep-link into a method on the skills page."""
+    return render_template("skills.html", focus_method=method_id, focus_skill=None)
+
+
+@app.route("/skills/skill/<skill_id>")
+def skill_interface(skill_id):
+    """Deep-link into a skill on the skills page."""
+    return render_template("skills.html", focus_method=None, focus_skill=skill_id)
+
+
+@app.route("/api/skills/tree", methods=["GET"])
+def api_skill_tree():
+    """Full pillar → skill → method tree with question counts."""
+    return get_skill_tree(questions)
+
+
+@app.route("/api/skills/methods/<method_id>", methods=["GET"])
+def api_method_detail(method_id):
+    detail = get_method_detail(method_id, questions)
+    if not detail:
+        return {"error": f"Method '{method_id}' not found"}, 404
+    # Attach harvested notes for this method
+    detail["notes"] = notes_store.list_notes(method_id=method_id, limit=50)
+    return detail
+
+
+@app.route("/api/skills/skills/<skill_id>", methods=["GET"])
+def api_skill_detail(skill_id):
+    detail = get_skill_detail(skill_id, questions)
+    if not detail:
+        return {"error": f"Skill '{skill_id}' not found"}, 404
+    return detail
+
+
+@app.route("/api/languages", methods=["GET"])
+def api_languages():
+    return {"languages": LANGUAGE_STARTERS}
+
+
+@app.route("/api/practice/<int:question_id>", methods=["GET"])
+def api_practice_question(question_id):
+    """Payload for the practice IDE: problem, methods, starter, notepad, notes."""
+    question = _find_question(question_id)
+    if not question:
+        return {"error": f"Question with ID {question_id} not found"}, 404
+
+    language = request.args.get("language", "python")
+    if language not in LANGUAGE_STARTERS:
+        language = "python"
+
+    annotated = _annotated(question)
+    primary = get_primary_method_id(question_id)
+
+    return {
+        "question": annotated,
+        "methods": annotated.get("methods", []),
+        "languages": LANGUAGE_STARTERS,
+        "language": language,
+        "starter": starter_template(language, question),
+        "notepad": notes_store.get_notepad(question_id),
+        "notes": notes_store.list_notes(question_id=question_id, limit=50),
+        "primary_method_id": primary,
+        "progress": notes_store.get_progress()
+        .get("by_question", {})
+        .get(str(question_id)),
+    }
+
+
+@app.route("/api/practice/catalog", methods=["GET"])
+def api_practice_catalog():
+    """Lightweight question catalog for the practice sidebar."""
+    difficulty = request.args.get("difficulty")
+    method_id = request.args.get("method")
+    catalog = []
+    for q in questions:
+        annotated = _annotated(q)
+        if difficulty and q["difficulty"].lower() != difficulty.lower():
+            continue
+        if method_id:
+            ids = [m["id"] for m in annotated.get("methods", [])]
+            if method_id not in ids:
+                continue
+        catalog.append(
+            {
+                "id": q["id"],
+                "title": q["title"],
+                "difficulty": q["difficulty"],
+                "category": q.get("category"),
+                "methods": annotated.get("methods", []),
+                "primary_method": annotated.get("primary_method"),
+            }
+        )
+    return {"questions": catalog, "total": len(catalog)}
+
+
+@app.route("/api/notes/notepad/<int:question_id>", methods=["GET"])
+def api_get_notepad(question_id):
+    if not _find_question(question_id):
+        return {"error": f"Question with ID {question_id} not found"}, 404
+    return notes_store.get_notepad(question_id)
+
+
+@app.route("/api/notes/notepad/<int:question_id>", methods=["PUT", "POST"])
+def api_save_notepad(question_id):
+    if not _find_question(question_id):
+        return {"error": f"Question with ID {question_id} not found"}, 404
+    data = request.get_json() or {}
+    content = data.get("content", "")
+    return notes_store.save_notepad(question_id, content)
+
+
+@app.route("/api/notes", methods=["GET"])
+def api_list_notes():
+    question_id = request.args.get("question_id", type=int)
+    method_id = request.args.get("method_id")
+    limit = request.args.get("limit", default=100, type=int)
+    return {
+        "notes": notes_store.list_notes(
+            question_id=question_id, method_id=method_id, limit=limit
+        )
+    }
+
+
+@app.route("/api/notes/harvest", methods=["POST"])
+def api_harvest_notes():
+    """Extract technique notes from code comments and persist them."""
+    data = request.get_json() or {}
+    code = data.get("code", "")
+    question_id = data.get("question_id")
+    language = data.get("language", "python")
+    method_id = data.get("method_id")
+
+    if question_id is None:
+        return {"error": "Missing question_id"}, 400
+    if not _find_question(int(question_id)):
+        return {"error": f"Question with ID {question_id} not found"}, 404
+
+    if not method_id:
+        method_id = get_primary_method_id(int(question_id))
+
+    added = notes_store.harvest_from_code(
+        code,
+        question_id=int(question_id),
+        method_id=method_id,
+        language=language,
+    )
+    return {
+        "added": added,
+        "count": len(added),
+        "notes": notes_store.list_notes(question_id=int(question_id), limit=50),
+    }
+
+
+@app.route("/api/notes/<note_id>", methods=["DELETE"])
+def api_delete_note(note_id):
+    ok = notes_store.delete_note(note_id)
+    if not ok:
+        return {"error": "Note not found"}, 404
+    return {"message": "Note deleted", "id": note_id}
+
+
+@app.route("/api/practice/submit", methods=["POST"])
+def api_practice_submit():
+    """Save code notes, mark progress, return mock interview feedback."""
+    data = request.get_json() or {}
+    question_id = data.get("question_id")
+    code = data.get("code", "")
+    language = data.get("language", "python")
+    notepad = data.get("notepad")
+    mark_solved = bool(data.get("mark_solved", True))
+
+    if question_id is None:
+        return {"error": "Missing question_id"}, 400
+
+    question = _find_question(int(question_id))
+    if not question:
+        return {"error": f"Question with ID {question_id} not found"}, 404
+
+    method_id = data.get("method_id") or get_primary_method_id(int(question_id))
+
+    if notepad is not None:
+        notes_store.save_notepad(int(question_id), notepad)
+
+    harvested = notes_store.harvest_from_code(
+        code,
+        question_id=int(question_id),
+        method_id=method_id,
+        language=language,
+    )
+
+    progress = None
+    if mark_solved:
+        progress = notes_store.mark_solved(int(question_id), method_id=method_id)
+
+    methods = get_methods_for_question(int(question_id))
+    method_names = [m["name"] for m in methods]
+
+    return {
+        "status": "recorded",
+        "message": (
+            "Rep recorded. Comments were harvested into technique notes; "
+            "open the method to see how this aggregates upward."
+        ),
+        "harvested_count": len(harvested),
+        "harvested": harvested,
+        "progress": progress,
+        "methods": method_names,
+        "next_drill": (
+            {
+                "method_id": method_id,
+                "method_name": methods[0]["name"] if methods else None,
+                "url": f"/skills/method/{method_id}" if method_id else "/skills",
+            }
+            if method_id
+            else None
+        ),
+        "feedback": {
+            "interview_tip": (
+                methods[0]["form_cues"][0]
+                if methods
+                else "State your approach before writing code."
+            ),
+            "complexity_reminder": (
+                "Be ready to state time and space complexity out loud."
+            ),
+        },
+    }
+
+
+@app.route("/api/progress", methods=["GET"])
+def api_progress():
+    return notes_store.get_progress()
 
 
 if __name__ == "__main__":
