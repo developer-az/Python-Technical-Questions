@@ -34,14 +34,23 @@ class FlashcardGame:
         self.built_solution = []
         self.current_choices = []  # Store current choices to maintain consistency
 
+    def _stats_path(self):
+        if (
+            os.environ.get("VERCEL")
+            or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+            or os.environ.get("DRILL_FORCE_TMP_DB")
+        ):
+            return "/tmp/leetcode_stats.json"
+        return "leetcode_stats.json"
+
     def load_stats(self):
         """Load user statistics from file."""
-        stats_file = "leetcode_stats.json"
+        stats_file = self._stats_path()
         if os.path.exists(stats_file):
             try:
                 with open(stats_file, "r") as f:
                     return json.load(f)
-            except:
+            except Exception:
                 return self.get_default_stats()
         return self.get_default_stats()
 
@@ -58,7 +67,7 @@ class FlashcardGame:
 
     def save_stats(self):
         """Save user statistics to file."""
-        stats_file = "leetcode_stats.json"
+        stats_file = self._stats_path()
         try:
             with open(stats_file, "w") as f:
                 json.dump(self.stats, f, indent=2)

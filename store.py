@@ -11,15 +11,48 @@ import json
 import math
 import os
 import sqlite3
+import tempfile
 import threading
 import time
 import uuid
 from contextlib import contextmanager
 from typing import Dict, List, Optional
 
-DEFAULT_DB_PATH = os.path.join(
+_REPO_DATA_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)), "data", "drill.db"
 )
+
+
+def _is_serverless() -> bool:
+    return bool(
+        os.environ.get("VERCEL")
+        or os.environ.get("AWS_LAMBDA_FUNCTION_NAME")
+        or os.environ.get("DRILL_FORCE_TMP_DB")
+    )
+
+
+def resolve_db_path(preferred: Optional[str] = None) -> str:
+    """Pick a writable SQLite path (Vercel/Lambda only allow /tmp writes)."""
+    override = os.environ.get("DRILL_DB_PATH")
+    if override:
+        return override
+    if _is_serverless():
+        return os.path.join(tempfile.gettempdir(), "drill.db")
+
+    candidate = preferred or _REPO_DATA_PATH
+    directory = os.path.dirname(candidate) or "."
+    try:
+        os.makedirs(directory, exist_ok=True)
+        probe = os.path.join(directory, ".drill_write_probe")
+        with open(probe, "w", encoding="utf-8") as fh:
+            fh.write("ok")
+        os.remove(probe)
+        return candidate
+    except OSError:
+        return os.path.join(tempfile.gettempdir(), "drill.db")
+
+
+DEFAULT_DB_PATH = resolve_db_path()
 
 QUALITY = {"again": 1, "hard": 2, "good": 3, "easy": 4}
 
@@ -31,13 +64,22 @@ def _now() -> float:
 class UserStore:
     """Thread-safe SQLite persistence for cards, notes, drafts, progress."""
 
-    def __init__(self, path: str = DEFAULT_DB_PATH):
-        self.path = path
+    def __init__(self, path: str = None):
+        self.path = path or resolve_db_path()
         self._lock = threading.RLock()
-        directory = os.path.dirname(path) or "."
-        os.makedirs(directory, exist_ok=True)
+        directory = os.path.dirname(self.path) or "."
+        try:
+            os.makedirs(directory, exist_ok=True)
+        except OSError:
+            # Last resort: force temp dir
+            self.path = os.path.join(tempfile.gettempdir(), "drill.db")
+            os.makedirs(os.path.dirname(self.path), exist_ok=True)
         self._init_schema()
-        if os.path.abspath(path) == os.path.abspath(DEFAULT_DB_PATH):
+        # Only migrate legacy JSON into the local repo DB, never on serverless /tmp
+        if (
+            not _is_serverless()
+            and os.path.abspath(self.path) == os.path.abspath(_REPO_DATA_PATH)
+        ):
             self._migrate_legacy_json()
 
     @contextmanager

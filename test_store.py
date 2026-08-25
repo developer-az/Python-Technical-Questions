@@ -3,7 +3,7 @@
 import os
 import tempfile
 
-from store import UserStore
+from store import UserStore, resolve_db_path
 
 
 class TestUserStore:
@@ -38,3 +38,24 @@ class TestUserStore:
         )
         assert len(n1) == 1
         assert n2 == []
+
+
+class TestServerlessPath:
+    def test_tmp_path_when_vercel(self, monkeypatch):
+        monkeypatch.setenv("VERCEL", "1")
+        monkeypatch.delenv("DRILL_DB_PATH", raising=False)
+        path = resolve_db_path()
+        assert path.endswith("drill.db")
+        normalized = path.replace("\\", "/").lower()
+        assert "tmp" in normalized
+
+    def test_user_store_under_vercel_env(self, monkeypatch):
+        monkeypatch.setenv("VERCEL", "1")
+        monkeypatch.delenv("DRILL_DB_PATH", raising=False)
+        store = UserStore()
+        assert "tmp" in store.path.replace("\\", "/").lower()
+        store.mark_encoded("method", "hash_map")
+        from app import app
+
+        client = app.test_client()
+        assert client.get("/health").status_code == 200
