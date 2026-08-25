@@ -12,6 +12,7 @@ from skills import (
     starter_template,
 )
 from notes import notes_store
+from store import user_store
 from memory import (
     build_session,
     memory_store,
@@ -54,8 +55,8 @@ def api_info():
     """API information endpoint."""
     return {
         "name": "Drill",
-        "version": "3.0.0",
-        "description": "Drill — retention-first interview training (spaced retrieval, schema encoding, transfer)",
+        "version": "4.0.0",
+        "description": "Drill — simple daily study loop with durable SQLite progress",
         "endpoints": {
             "GET /": "Web interface",
             "GET /api": "API information",
@@ -635,20 +636,22 @@ def practice_interface(question_id=None):
 
 
 @app.route("/skills")
+@app.route("/paths")
 def skills_interface():
-    """Skill tree / method aggregation UI."""
+    """Human-friendly pattern paths (method → skill → pillar)."""
     return render_template("skills.html", focus_method=None, focus_skill=None)
 
 
 @app.route("/skills/method/<method_id>")
+@app.route("/paths/<method_id>")
 def method_interface(method_id):
-    """Deep-link into a method on the skills page."""
+    """Deep-link into a method on the paths page."""
     return render_template("skills.html", focus_method=method_id, focus_skill=None)
 
 
 @app.route("/skills/skill/<skill_id>")
 def skill_interface(skill_id):
-    """Deep-link into a skill on the skills page."""
+    """Deep-link into a skill on the paths page."""
     return render_template("skills.html", focus_method=None, focus_skill=skill_id)
 
 
@@ -694,6 +697,7 @@ def api_practice_question(question_id):
 
     annotated = _annotated(question)
     primary = get_primary_method_id(question_id)
+    draft = user_store.get_draft(question_id, language)
 
     return {
         "question": annotated,
@@ -701,6 +705,7 @@ def api_practice_question(question_id):
         "languages": LANGUAGE_STARTERS,
         "language": language,
         "starter": starter_template(language, question),
+        "draft": draft,
         "notepad": notes_store.get_notepad(question_id),
         "notes": notes_store.list_notes(question_id=question_id, limit=50),
         "primary_method_id": primary,
@@ -735,6 +740,20 @@ def api_practice_catalog():
             }
         )
     return {"questions": catalog, "total": len(catalog)}
+
+
+@app.route("/api/practice/<int:question_id>/draft", methods=["GET", "PUT", "POST"])
+def api_practice_draft(question_id):
+    """Server-side code drafts — replaces localStorage / query hacks."""
+    if not _find_question(question_id):
+        return {"error": f"Question with ID {question_id} not found"}, 404
+    if request.method == "GET":
+        language = request.args.get("language", "python")
+        return user_store.get_draft(question_id, language)
+    data = request.get_json() or {}
+    language = data.get("language", "python")
+    code = data.get("code", "")
+    return user_store.save_draft(question_id, language, code)
 
 
 @app.route("/api/notes/notepad/<int:question_id>", methods=["GET"])
@@ -825,6 +844,8 @@ def api_practice_submit():
     if notepad is not None:
         notes_store.save_notepad(int(question_id), notepad)
 
+    user_store.save_draft(int(question_id), language, code)
+
     harvested = notes_store.harvest_from_code(
         code,
         question_id=int(question_id),
@@ -874,9 +895,10 @@ def api_practice_submit():
 
 @app.route("/learn")
 def learn_interface():
-    """Cognitive learn session: encode → retrieve → apply → consolidate."""
-    return render_template("learn.html")
+    """Legacy URL — study lives on Today (/)."""
+    from flask import redirect
 
+    return redirect("/", code=302)
 
 @app.route("/api/learn/session", methods=["GET", "POST"])
 def api_learn_session():

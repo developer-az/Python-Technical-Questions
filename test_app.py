@@ -18,6 +18,7 @@ def test_home_endpoint(client):
 
     assert response.status_code == 200
     assert b"Drill" in response.data
+    assert b"Start studying" in response.data or b"Today" in response.data
     assert b"html" in response.data
 
 
@@ -27,9 +28,9 @@ def test_api_info_endpoint(client):
     data = json.loads(response.data)
 
     assert response.status_code == 200
-    assert "Drill" in data["description"] or "Technical" in data["name"]
+    assert "Drill" in data["description"] or "Drill" in data["name"]
     assert "endpoints" in data
-    assert data["version"] == "3.0.0"
+    assert data["version"] == "4.0.0"
 
 
 def test_health_endpoint(client):
@@ -398,7 +399,8 @@ def test_add_solution_missing_fields(client):
 def test_practice_page(client):
     response = client.get("/practice")
     assert response.status_code == 200
-    assert b"Practice IDE" in response.data or b"code-editor" in response.data
+    assert b"Practice" in response.data
+    assert b"code" in response.data or b"Problems" in response.data
 
 
 def test_practice_page_with_question(client):
@@ -511,10 +513,31 @@ def test_questions_include_methods(client):
 
 
 def test_learn_page(client):
-    response = client.get("/learn")
+    response = client.get("/learn", follow_redirects=False)
+    assert response.status_code in (302, 301)
+    response = client.get("/learn", follow_redirects=True)
     assert response.status_code == 200
-    assert b"Encode" in response.data
-    assert b"Retrieve" in response.data
+    assert b"Start studying" in response.data or b"Drill" in response.data
+
+
+def test_paths_page(client):
+    response = client.get("/paths")
+    assert response.status_code == 200
+    assert b"Paths" in response.data
+
+
+def test_draft_roundtrip(client):
+    response = client.put(
+        "/api/practice/1/draft",
+        data=json.dumps({"language": "python", "code": "def two_sum():\n    pass\n"}),
+        content_type="application/json",
+    )
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert "two_sum" in data["code"]
+    loaded = client.get("/api/practice/1?language=python")
+    payload = json.loads(loaded.data)
+    assert "two_sum" in (payload.get("draft") or {}).get("code", "")
 
 
 def test_learn_session_api(client):

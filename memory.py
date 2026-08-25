@@ -23,18 +23,6 @@ from typing import Dict, List, Optional, Tuple
 
 from skills import METHODS, QUESTION_METHODS, SKILLS, get_method
 
-DEFAULT_MEMORY_PATH = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)), "user_memory.json"
-)
-
-# Review quality → SM-2 grade
-QUALITY = {
-    "again": 1,  # failed retrieval — reset interval
-    "hard": 2,  # retrieved with struggle
-    "good": 3,  # correct with effort
-    "easy": 4,  # fluent — longer spacing
-}
-
 PHASES = ("encode", "retrieve", "apply", "consolidate")
 
 
@@ -42,225 +30,46 @@ def _now() -> float:
     return time.time()
 
 
-def _day_seconds(days: float) -> float:
-    return days * 86400.0
+DEFAULT_MEMORY_PATH = None  # legacy; persistence lives in store.user_store
 
 
 class MemoryStore:
-    """Persistent SM-2 cards keyed by card_id (method:*, problem:*, cue:*)."""
+    """Adapter over UserStore so session builders keep a store= API."""
 
-    def __init__(self, path: str = DEFAULT_MEMORY_PATH):
-        self.path = path
-        self._lock = threading.Lock()
-        self._data: Dict = {
-            "cards": {},
-            "elaborations": {},
-            "sessions": [],
-            "stats": {"reviews": 0, "encodes": 0, "retrieves": 0},
-        }
-        self._load()
+    def __init__(self, path: str = None):
+        # path kept for tests that pass a temp file — use isolated UserStore
+        if path:
+            from store import UserStore
 
-    def _load(self) -> None:
-        if not os.path.exists(self.path):
-            return
-        try:
-            with open(self.path, "r", encoding="utf-8") as fh:
-                loaded = json.load(fh)
-            if isinstance(loaded, dict):
-                self._data["cards"] = loaded.get("cards", {})
-                self._data["elaborations"] = loaded.get("elaborations", {})
-                self._data["sessions"] = loaded.get("sessions", [])
-                self._data["stats"] = loaded.get(
-                    "stats", {"reviews": 0, "encodes": 0, "retrieves": 0}
-                )
-        except (json.JSONDecodeError, OSError):
-            pass
-
-    def _save(self) -> None:
-        directory = os.path.dirname(self.path) or "."
-        os.makedirs(directory, exist_ok=True)
-        tmp = f"{self.path}.tmp"
-        with open(tmp, "w", encoding="utf-8") as fh:
-            json.dump(self._data, fh, indent=2)
-        os.replace(tmp, self.path)
-
-    def _default_card(self, card_id: str, kind: str, ref_id: str) -> Dict:
-        return {
-            "id": card_id,
-            "kind": kind,  # method | problem | cue
-            "ref_id": ref_id,
-            "ease": 2.5,
-            "interval_days": 0,
-            "repetitions": 0,
-            "lapses": 0,
-            "due_at": 0,  # due immediately when new
-            "last_review_at": None,
-            "last_quality": None,
-            "stability": 0.0,  # rough retention estimate 0-1
-            "seen_encode": False,
-            "created_at": _now(),
-        }
-
-    def ensure_card(self, kind: str, ref_id: str) -> Dict:
-        card_id = f"{kind}:{ref_id}"
-        with self._lock:
-            card = self._data["cards"].get(card_id)
-            if not card:
-                card = self._default_card(card_id, kind, str(ref_id))
-                self._data["cards"][card_id] = card
-                self._save()
-            return dict(card)
-
-    def get_card(self, kind: str, ref_id: str) -> Dict:
-        return self.ensure_card(kind, ref_id)
-
-    def mark_encoded(self, kind: str, ref_id: str) -> Dict:
-        card_id = f"{kind}:{ref_id}"
-        with self._lock:
-            card = self._data["cards"].get(card_id) or self._default_card(
-                card_id, kind, str(ref_id)
-            )
-            card["seen_encode"] = True
-            self._data["cards"][card_id] = card
-            self._data["stats"]["encodes"] = (
-                int(self._data["stats"].get("encodes", 0)) + 1
-            )
-            self._save()
-            return dict(card)
-
-    def review(self, kind: str, ref_id: str, rating: str) -> Dict:
-        """Apply SM-2 update from again|hard|good|easy."""
-        q = QUALITY.get(rating)
-        if q is None:
-            raise ValueError(f"Invalid rating '{rating}'")
-
-        card_id = f"{kind}:{ref_id}"
-        with self._lock:
-            card = self._data["cards"].get(card_id) or self._default_card(
-                card_id, kind, str(ref_id)
-            )
-            card = self._sm2(card, q)
-            card["last_quality"] = rating
-            card["last_review_at"] = _now()
-            card["seen_encode"] = True
-            self._data["cards"][card_id] = card
-            self._data["stats"]["reviews"] = (
-                int(self._data["stats"].get("reviews", 0)) + 1
-            )
-            if rating in ("good", "easy", "hard"):
-                self._data["stats"]["retrieves"] = (
-                    int(self._data["stats"].get("retrieves", 0)) + 1
-                )
-            self._save()
-            return dict(card)
-
-    def _sm2(self, card: Dict, q: int) -> Dict:
-        """Classic SM-2 with stability heuristic for UI mastery rings."""
-        ease = float(card.get("ease", 2.5))
-        reps = int(card.get("repetitions", 0))
-        interval = float(card.get("interval_days", 0))
-        lapses = int(card.get("lapses", 0))
-
-        ease = max(1.3, ease + (0.1 - (5 - q) * (0.08 + (5 - q) * 0.02)))
-
-        if q < 3:
-            # Failed or hard struggle → short retry, count lapse on again
-            if q == 1:
-                lapses += 1
-                reps = 0
-                interval = 0.01  # ~15 minutes — desirable difficulty, not cram
-            else:
-                interval = max(0.5, interval * 1.2)
-                reps = max(1, reps)
+            self._store = UserStore(path)
         else:
-            if reps == 0:
-                interval = 1.0
-            elif reps == 1:
-                interval = 3.0 if q >= 4 else 2.0
-            else:
-                interval = max(1.0, interval * ease)
-                if q >= 4:
-                    interval *= 1.15
-            reps += 1
+            from store import user_store
 
-        # Stability: logistic of reps vs lapses (for mastery UI, not scheduling)
-        stability = 1.0 / (1.0 + math.exp(-(reps - lapses - 1.5)))
+            self._store = user_store
 
-        card.update(
-            {
-                "ease": round(ease, 3),
-                "interval_days": round(interval, 4),
-                "repetitions": reps,
-                "lapses": lapses,
-                "due_at": _now() + _day_seconds(interval),
-                "stability": round(stability, 3),
-            }
-        )
-        return card
+    def ensure_card(self, kind: str, ref_id: str):
+        return self._store.ensure_card(kind, ref_id)
 
-    def save_elaboration(self, method_id: str, text: str) -> Dict:
-        """Own-words invariant — elaborative encoding for long-term retention."""
-        key = str(method_id)
-        now = _now()
-        with self._lock:
-            entry = self._data["elaborations"].get(key, {"history": []})
-            entry["text"] = (text or "").strip()
-            entry["updated_at"] = now
-            history = entry.get("history") or []
-            if entry["text"]:
-                history.append({"text": entry["text"], "at": now})
-            entry["history"] = history[-20:]
-            self._data["elaborations"][key] = entry
-            self._save()
-            return dict(entry)
+    def get_card(self, kind: str, ref_id: str):
+        return self._store.get_card(kind, ref_id)
 
-    def get_elaboration(self, method_id: str) -> Dict:
-        with self._lock:
-            entry = self._data["elaborations"].get(str(method_id))
-            if not entry:
-                return {"text": "", "updated_at": None, "history": []}
-            return dict(entry)
+    def mark_encoded(self, kind: str, ref_id: str):
+        return self._store.mark_encoded(kind, ref_id)
 
-    def mastery_summary(self) -> Dict:
-        with self._lock:
-            cards = list(self._data["cards"].values())
-            stats = dict(self._data["stats"])
+    def review(self, kind: str, ref_id: str, rating: str):
+        return self._store.review(kind, ref_id, rating)
 
-        method_cards = [c for c in cards if c.get("kind") == "method"]
-        problem_cards = [c for c in cards if c.get("kind") == "problem"]
-        now = _now()
-        due = [c for c in cards if float(c.get("due_at", 0)) <= now]
-        learned = [c for c in method_cards if int(c.get("repetitions", 0)) > 0]
-        fluent = [c for c in method_cards if float(c.get("stability", 0)) >= 0.7]
+    def save_elaboration(self, method_id: str, text: str):
+        return self._store.save_elaboration(method_id, text)
 
-        return {
-            "stats": stats,
-            "method_cards": len(method_cards),
-            "problem_cards": len(problem_cards),
-            "due_count": len(due),
-            "methods_touched": len(learned),
-            "methods_fluent": len(fluent),
-            "total_methods": len(METHODS),
-            "curriculum_coverage": round(
-                len(learned) / max(1, len(METHODS)), 3
-            ),
-        }
+    def get_elaboration(self, method_id: str):
+        return self._store.get_elaboration(method_id)
 
-    def method_states(self) -> Dict[str, Dict]:
-        states = {}
-        for mid in METHODS:
-            card = self.get_card("method", mid)
-            now = _now()
-            due = float(card.get("due_at", 0)) <= now
-            states[mid] = {
-                "stability": card.get("stability", 0),
-                "repetitions": card.get("repetitions", 0),
-                "due": due,
-                "interval_days": card.get("interval_days", 0),
-                "seen_encode": card.get("seen_encode", False),
-                "last_quality": card.get("last_quality"),
-            }
-        return states
+    def mastery_summary(self):
+        return self._store.mastery_summary()
+
+    def method_states(self):
+        return self._store.method_states()
 
 
 memory_store = MemoryStore()
