@@ -29,7 +29,7 @@ def test_api_info_endpoint(client):
     assert response.status_code == 200
     assert "Drill" in data["description"] or "Technical" in data["name"]
     assert "endpoints" in data
-    assert data["version"] == "2.0.0"
+    assert data["version"] == "3.0.0"
 
 
 def test_health_endpoint(client):
@@ -508,3 +508,62 @@ def test_questions_include_methods(client):
     data = json.loads(response.data)
     assert response.status_code == 200
     assert data["question"]["primary_method"]["id"] == "hash_map"
+
+
+def test_learn_page(client):
+    response = client.get("/learn")
+    assert response.status_code == 200
+    assert b"Encode" in response.data
+    assert b"Retrieve" in response.data
+
+
+def test_learn_session_api(client):
+    response = client.post(
+        "/api/learn/session",
+        data=json.dumps({"limit": 4}),
+        content_type="application/json",
+    )
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert data["step_count"] == 4
+    assert data["steps"][0]["card"]["retrieve_prompt"]
+
+
+def test_learn_review_flow(client):
+    unique = f"hash_map_test_{uuid.uuid4().hex[:6]}"
+    # use a real method id
+    encode = client.post(
+        "/api/learn/encode",
+        data=json.dumps({"kind": "method", "ref_id": "greedy_scan"}),
+        content_type="application/json",
+    )
+    assert encode.status_code == 200
+    elab = client.post(
+        "/api/learn/elaborate",
+        data=json.dumps(
+            {
+                "method_id": "greedy_scan",
+                "text": f"Keep one running extremum {unique}",
+            }
+        ),
+        content_type="application/json",
+    )
+    assert elab.status_code == 200
+    review = client.post(
+        "/api/learn/review",
+        data=json.dumps(
+            {"kind": "method", "ref_id": "greedy_scan", "rating": "good"}
+        ),
+        content_type="application/json",
+    )
+    data = json.loads(review.data)
+    assert review.status_code == 200
+    assert data["card"]["repetitions"] >= 1
+
+
+def test_learn_mastery_api(client):
+    response = client.get("/api/learn/mastery")
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert "due_count" in data
+    assert data["total_methods"] >= 1

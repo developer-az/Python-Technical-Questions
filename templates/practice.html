@@ -25,9 +25,10 @@
             <span class="brand-name">Drill</span>
         </a>
         <nav class="topnav">
-            <a href="/practice" class="active">Practice</a>
-            <a href="/skills">Skills</a>
-            <a href="/flashcard/progressive">Build Mode</a>
+            <a href="/learn">Learn</a>
+            <a href="/practice" class="active">Apply</a>
+            <a href="/skills">Atlas</a>
+            <a href="/flashcard/progressive">Build</a>
         </nav>
         <div class="topbar-meta" id="session-meta">Interview desk</div>
     </header>
@@ -71,6 +72,9 @@
         </section>
 
         <section class="ide-panel">
+            <div id="learn-banner" class="learn-banner hidden">
+                <p><strong>Transfer mode.</strong> Use the method chunk from your Learn session. Write technique comments, then harvest.</p>
+            </div>
             <div class="ide-toolbar">
                 <label class="lang-select">
                     <span>Language</span>
@@ -389,6 +393,10 @@
         });
 
         initEditor();
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('from') === 'learn') {
+            document.getElementById('learn-banner')?.classList.remove('hidden');
+        }
         loadCatalog().then(() => {
             if (INITIAL_Q) openQuestion(INITIAL_Q);
         });

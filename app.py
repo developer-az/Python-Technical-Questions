@@ -12,6 +12,12 @@ from skills import (
     starter_template,
 )
 from notes import notes_store
+from memory import (
+    build_session,
+    memory_store,
+    session_step_payload,
+    get_pattern_card,
+)
 
 app = Flask(__name__)
 
@@ -48,8 +54,8 @@ def api_info():
     """API information endpoint."""
     return {
         "name": "Drill",
-        "version": "2.0.0",
-        "description": "Drill — interview-style coding practice with skill methods, IDE, and technique notes",
+        "version": "3.0.0",
+        "description": "Drill — retention-first interview training (spaced retrieval, schema encoding, transfer)",
         "endpoints": {
             "GET /": "Web interface",
             "GET /api": "API information",
@@ -865,9 +871,83 @@ def api_practice_submit():
     }
 
 
+
+@app.route("/learn")
+def learn_interface():
+    """Cognitive learn session: encode → retrieve → apply → consolidate."""
+    return render_template("learn.html")
+
+
+@app.route("/api/learn/session", methods=["GET", "POST"])
+def api_learn_session():
+    """Build an interleaved spaced-repetition session from the living curriculum."""
+    data = request.get_json(silent=True) or {}
+    limit = data.get("limit") or request.args.get("limit", default=6, type=int) or 6
+    limit = max(1, min(int(limit), 12))
+    return build_session(questions, store=memory_store, limit=limit)
+
+
+@app.route("/api/learn/mastery", methods=["GET"])
+def api_learn_mastery():
+    return memory_store.mastery_summary()
+
+
+@app.route("/api/learn/states", methods=["GET"])
+def api_learn_states():
+    return {"methods": memory_store.method_states()}
+
+
+@app.route("/api/learn/pattern/<method_id>", methods=["GET"])
+def api_learn_pattern(method_id):
+    payload = session_step_payload(method_id, questions)
+    if not payload:
+        return {"error": f"Method '{method_id}' not found"}, 404
+    return payload
+
+
+@app.route("/api/learn/encode", methods=["POST"])
+def api_learn_encode():
+    data = request.get_json() or {}
+    kind = data.get("kind", "method")
+    ref_id = data.get("ref_id")
+    if not ref_id:
+        return {"error": "Missing ref_id"}, 400
+    card = memory_store.mark_encoded(kind, str(ref_id))
+    return {"card": card}
+
+
+@app.route("/api/learn/review", methods=["POST"])
+def api_learn_review():
+    data = request.get_json() or {}
+    kind = data.get("kind", "method")
+    ref_id = data.get("ref_id")
+    rating = data.get("rating")
+    if not ref_id or not rating:
+        return {"error": "Missing ref_id or rating"}, 400
+    try:
+        card = memory_store.review(kind, str(ref_id), rating)
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+    return {"card": card}
+
+
+@app.route("/api/learn/elaborate", methods=["POST"])
+def api_learn_elaborate():
+    data = request.get_json() or {}
+    method_id = data.get("method_id")
+    text = data.get("text", "")
+    if not method_id:
+        return {"error": "Missing method_id"}, 400
+    entry = memory_store.save_elaboration(method_id, text)
+    return {"elaboration": entry}
+
+
 @app.route("/api/progress", methods=["GET"])
 def api_progress():
-    return notes_store.get_progress()
+    progress = notes_store.get_progress()
+    progress["memory"] = memory_store.mastery_summary()
+    return progress
+
 
 
 if __name__ == "__main__":

@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drill — Build coding interview form</title>
+    <title>Drill — Retain algorithm patterns</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="drill-app landing">
+<body class="drill-app landing dash-home">
     <div class="ambient ambient-a" aria-hidden="true"></div>
     <div class="ambient ambient-b" aria-hidden="true"></div>
 
@@ -19,125 +19,147 @@
             <span class="brand-name">Drill</span>
         </a>
         <nav class="topnav">
-            <a href="/practice">Practice</a>
-            <a href="/skills">Skills</a>
-            <a href="/flashcard/progressive">Build Mode</a>
+            <a href="/learn">Learn</a>
+            <a href="/practice">Apply</a>
+            <a href="/skills">Atlas</a>
+            <a href="/flashcard/progressive">Build</a>
         </nav>
-        <a class="primary-btn compact" href="/practice">Open IDE</a>
+        <a class="primary-btn compact" href="/learn">Continue</a>
     </header>
 
     <main>
-        <section class="hero">
+        <section class="hero dash-hero">
             <div class="hero-copy">
                 <p class="brand-lockup">Drill</p>
-                <h1>Train interview coding the way you train form.</h1>
+                <h1>Patterns you can still pull up in the interview room.</h1>
                 <p class="hero-sub">
-                    Solve on a real desk IDE. Tag every problem with its method.
-                    Climb from technique → skill → pillar — like progressive overload for algorithms.
+                    Built on how memory actually works: encode a schema, retrieve it under
+                    desirable difficulty, transfer onto code, then space the next review.
+                    The curriculum grows with every new method — no dead-end UI.
                 </p>
                 <div class="cta-row">
-                    <a class="primary-btn" href="/practice">Start a rep</a>
-                    <a class="ghost-btn" href="/skills">View skill path</a>
+                    <a class="primary-btn" href="/learn">Start cognitive session</a>
+                    <a class="ghost-btn" href="/practice">Open apply desk</a>
                 </div>
             </div>
             <div class="hero-visual" aria-hidden="true">
-                <div class="hero-editor">
-                    <div class="hero-editor-bar">
-                        <span></span><span></span><span></span>
-                        <em>two_sum.py</em>
+                <div class="loop-orbit">
+                    <div class="orbit-ring"></div>
+                    <span class="orbit-node n1">Encode</span>
+                    <span class="orbit-node n2">Retrieve</span>
+                    <span class="orbit-node n3">Apply</span>
+                    <span class="orbit-node n4">Space</span>
+                    <div class="orbit-core">
+                        <em>SM-2</em>
+                        <strong id="hero-due">—</strong>
+                        <span>due today</span>
                     </div>
-                    <pre><code><span class="cmt"># Method: Hash Map Lookup</span>
-<span class="cmt"># Store complement before you need it</span>
-<span class="kw">def</span> <span class="fn">two_sum</span>(nums, target):
-    seen = {}
-    <span class="kw">for</span> i, num <span class="kw">in</span> <span class="fn">enumerate</span>(nums):
-        need = target - num
-        <span class="kw">if</span> need <span class="kw">in</span> seen:
-            <span class="kw">return</span> [seen[need], i]
-        seen[num] = i</code></pre>
                 </div>
             </div>
         </section>
 
-        <section class="strip">
+        <section class="strip mastery-strip">
             <div>
-                <strong id="stat-questions">—</strong>
-                <span>Problems</span>
+                <strong id="stat-due">—</strong>
+                <span>Due retrievals</span>
+            </div>
+            <div>
+                <strong id="stat-fluent">—</strong>
+                <span>Fluent methods</span>
+            </div>
+            <div>
+                <strong id="stat-coverage">—</strong>
+                <span>Curriculum coverage</span>
             </div>
             <div>
                 <strong id="stat-methods">—</strong>
-                <span>Methods</span>
-            </div>
-            <div>
-                <strong id="stat-skills">—</strong>
-                <span>Skills</span>
-            </div>
-            <div>
-                <strong id="stat-solved">—</strong>
-                <span>Reps logged</span>
+                <span>Methods in graph</span>
             </div>
         </section>
 
-        <section class="features">
-            <article>
-                <h2>Interview desk IDE</h2>
-                <p>
-                    Write in Python, JavaScript, Java, or C++ with a full editor —
-                    the same muscle memory you will use on interview day.
-                </p>
-                <a href="/practice">Open practice →</a>
-            </article>
-            <article>
-                <h2>Comments become notes</h2>
-                <p>
-                    Technique comments in your solution are harvested into a study
-                    notepad you can reopen by problem or by method.
-                </p>
-                <a href="/practice">Write a cue →</a>
-            </article>
-            <article>
-                <h2>Methods stack upward</h2>
-                <p>
-                    Every problem lists its method. Click it to see the parent skill
-                    and pillar — form cues aggregating into something you can explain.
-                </p>
-                <a href="/skills">Climb the path →</a>
-            </article>
+        <section class="home-grid">
+            <a class="home-tile primary-tile" href="/learn">
+                <p class="eyebrow">Primary path</p>
+                <h2>Learn session</h2>
+                <p>Interleaved encode → retrieve → apply → consolidate. Only what the forgetting curve says you need.</p>
+                <span class="tile-cta">Enter session →</span>
+            </a>
+            <a class="home-tile" href="/practice">
+                <p class="eyebrow">Transfer</p>
+                <h2>Apply desk</h2>
+                <p>Interview IDE + notepad. Comments become technique notes attached to methods.</p>
+                <span class="tile-cta">Open IDE →</span>
+            </a>
+            <a class="home-tile" href="/skills">
+                <p class="eyebrow">Schema map</p>
+                <h2>Curriculum atlas</h2>
+                <p>Method → skill → pillar. Click any method to see how the chunk aggregates upward.</p>
+                <span class="tile-cta">Browse atlas →</span>
+            </a>
+            <a class="home-tile" href="/flashcard/progressive">
+                <p class="eyebrow">Scaffold fade</p>
+                <h2>Build mode</h2>
+                <p>Assemble solutions section-by-section when you need worked-example support first.</p>
+                <span class="tile-cta">Guided build →</span>
+            </a>
         </section>
 
-        <section class="modes">
-            <div>
-                <p class="eyebrow">Also available</p>
-                <h2>Build Mode</h2>
-                <p>Assemble a solution section by section when you want guided reps before free practice.</p>
-                <a class="ghost-btn" href="/flashcard/progressive">Enter Build Mode</a>
+        <section class="method-pulse" id="method-pulse">
+            <div class="section-head">
+                <div>
+                    <p class="eyebrow">Living curriculum</p>
+                    <h2>Method mastery</h2>
+                </div>
+                <p class="muted">Stability rings update as you review. New methods join the graph automatically.</p>
             </div>
+            <div class="method-rings" id="method-rings"></div>
         </section>
     </main>
 
     <footer class="site-footer">
-        <span>Drill · open-source interview form training</span>
+        <span>Drill · retention-first interview training</span>
         <a href="/api">API</a>
     </footer>
 
     <script>
         const API = window.location.origin;
+        const escapeHtml = (s) => String(s || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+
         async function boot() {
-            try {
-                const [stats, tree, progress] = await Promise.all([
-                    fetch(`${API}/stats`).then(r => r.json()),
-                    fetch(`${API}/api/skills/tree`).then(r => r.json()),
-                    fetch(`${API}/api/progress`).then(r => r.json()),
-                ]);
-                document.getElementById('stat-questions').textContent = stats.total_questions ?? '—';
-                document.getElementById('stat-methods').textContent = tree.method_count ?? '—';
-                document.getElementById('stat-skills').textContent = tree.skill_count ?? '—';
-                document.getElementById('stat-solved').textContent = progress.solved_count ?? 0;
-            } catch (e) {
-                console.error(e);
-            }
+            const [mastery, tree, states] = await Promise.all([
+                fetch(`${API}/api/learn/mastery`).then(r => r.json()),
+                fetch(`${API}/api/skills/tree`).then(r => r.json()),
+                fetch(`${API}/api/learn/states`).then(r => r.json()),
+            ]);
+            document.getElementById('stat-due').textContent = mastery.due_count ?? 0;
+            document.getElementById('hero-due').textContent = mastery.due_count ?? 0;
+            document.getElementById('stat-fluent').textContent =
+                `${mastery.methods_fluent ?? 0}/${mastery.total_methods ?? 0}`;
+            document.getElementById('stat-coverage').textContent =
+                `${Math.round((mastery.curriculum_coverage || 0) * 100)}%`;
+            document.getElementById('stat-methods').textContent = tree.method_count ?? mastery.total_methods;
+
+            const rings = document.getElementById('method-rings');
+            const methods = [];
+            (tree.pillars || []).forEach(p => p.skills.forEach(s => s.methods.forEach(m => {
+                if (!methods.find(x => x.id === m.id)) methods.push(m);
+            })));
+            rings.innerHTML = methods.map(m => {
+                const st = (states.methods || {})[m.id] || {};
+                const stab = Math.round((st.stability || 0) * 100);
+                const due = st.due ? 'due' : '';
+                return `<a class="ring-card ${due}" href="/learn?method=${encodeURIComponent(m.id)}" title="${escapeHtml(m.summary)}">
+                    <svg viewBox="0 0 36 36" class="ring">
+                        <path class="ring-bg" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31"/>
+                        <path class="ring-fg" stroke-dasharray="${stab}, 100" d="M18 2.5a15.5 15.5 0 1 1 0 31a15.5 15.5 0 1 1 0-31"/>
+                    </svg>
+                    <span>${escapeHtml(m.name)}</span>
+                    <em>${st.due ? 'due' : stab + '%'}</em>
+                </a>`;
+            }).join('');
         }
-        boot();
+        boot().catch(console.error);
     </script>
 </body>
 </html>
