@@ -12,6 +12,13 @@ from skills import (
     starter_template,
 )
 from notes import notes_store
+from store import user_store
+from memory import (
+    build_session,
+    memory_store,
+    session_step_payload,
+    get_pattern_card,
+)
 
 app = Flask(__name__)
 
@@ -48,8 +55,8 @@ def api_info():
     """API information endpoint."""
     return {
         "name": "Drill",
-        "version": "2.0.0",
-        "description": "Drill — interview-style coding practice with skill methods, IDE, and technique notes",
+        "version": "4.0.0",
+        "description": "Drill — simple daily study loop with durable SQLite progress",
         "endpoints": {
             "GET /": "Web interface",
             "GET /api": "API information",
@@ -629,20 +636,22 @@ def practice_interface(question_id=None):
 
 
 @app.route("/skills")
+@app.route("/paths")
 def skills_interface():
-    """Skill tree / method aggregation UI."""
+    """Human-friendly pattern paths (method → skill → pillar)."""
     return render_template("skills.html", focus_method=None, focus_skill=None)
 
 
 @app.route("/skills/method/<method_id>")
+@app.route("/paths/<method_id>")
 def method_interface(method_id):
-    """Deep-link into a method on the skills page."""
+    """Deep-link into a method on the paths page."""
     return render_template("skills.html", focus_method=method_id, focus_skill=None)
 
 
 @app.route("/skills/skill/<skill_id>")
 def skill_interface(skill_id):
-    """Deep-link into a skill on the skills page."""
+    """Deep-link into a skill on the paths page."""
     return render_template("skills.html", focus_method=None, focus_skill=skill_id)
 
 
@@ -688,6 +697,7 @@ def api_practice_question(question_id):
 
     annotated = _annotated(question)
     primary = get_primary_method_id(question_id)
+    draft = user_store.get_draft(question_id, language)
 
     return {
         "question": annotated,
@@ -695,6 +705,7 @@ def api_practice_question(question_id):
         "languages": LANGUAGE_STARTERS,
         "language": language,
         "starter": starter_template(language, question),
+        "draft": draft,
         "notepad": notes_store.get_notepad(question_id),
         "notes": notes_store.list_notes(question_id=question_id, limit=50),
         "primary_method_id": primary,
@@ -729,6 +740,20 @@ def api_practice_catalog():
             }
         )
     return {"questions": catalog, "total": len(catalog)}
+
+
+@app.route("/api/practice/<int:question_id>/draft", methods=["GET", "PUT", "POST"])
+def api_practice_draft(question_id):
+    """Server-side code drafts — replaces localStorage / query hacks."""
+    if not _find_question(question_id):
+        return {"error": f"Question with ID {question_id} not found"}, 404
+    if request.method == "GET":
+        language = request.args.get("language", "python")
+        return user_store.get_draft(question_id, language)
+    data = request.get_json() or {}
+    language = data.get("language", "python")
+    code = data.get("code", "")
+    return user_store.save_draft(question_id, language, code)
 
 
 @app.route("/api/notes/notepad/<int:question_id>", methods=["GET"])
@@ -819,6 +844,8 @@ def api_practice_submit():
     if notepad is not None:
         notes_store.save_notepad(int(question_id), notepad)
 
+    user_store.save_draft(int(question_id), language, code)
+
     harvested = notes_store.harvest_from_code(
         code,
         question_id=int(question_id),
@@ -865,9 +892,84 @@ def api_practice_submit():
     }
 
 
+
+@app.route("/learn")
+def learn_interface():
+    """Legacy URL — study lives on Today (/)."""
+    from flask import redirect
+
+    return redirect("/", code=302)
+
+@app.route("/api/learn/session", methods=["GET", "POST"])
+def api_learn_session():
+    """Build an interleaved spaced-repetition session from the living curriculum."""
+    data = request.get_json(silent=True) or {}
+    limit = data.get("limit") or request.args.get("limit", default=6, type=int) or 6
+    limit = max(1, min(int(limit), 12))
+    return build_session(questions, store=memory_store, limit=limit)
+
+
+@app.route("/api/learn/mastery", methods=["GET"])
+def api_learn_mastery():
+    return memory_store.mastery_summary()
+
+
+@app.route("/api/learn/states", methods=["GET"])
+def api_learn_states():
+    return {"methods": memory_store.method_states()}
+
+
+@app.route("/api/learn/pattern/<method_id>", methods=["GET"])
+def api_learn_pattern(method_id):
+    payload = session_step_payload(method_id, questions)
+    if not payload:
+        return {"error": f"Method '{method_id}' not found"}, 404
+    return payload
+
+
+@app.route("/api/learn/encode", methods=["POST"])
+def api_learn_encode():
+    data = request.get_json() or {}
+    kind = data.get("kind", "method")
+    ref_id = data.get("ref_id")
+    if not ref_id:
+        return {"error": "Missing ref_id"}, 400
+    card = memory_store.mark_encoded(kind, str(ref_id))
+    return {"card": card}
+
+
+@app.route("/api/learn/review", methods=["POST"])
+def api_learn_review():
+    data = request.get_json() or {}
+    kind = data.get("kind", "method")
+    ref_id = data.get("ref_id")
+    rating = data.get("rating")
+    if not ref_id or not rating:
+        return {"error": "Missing ref_id or rating"}, 400
+    try:
+        card = memory_store.review(kind, str(ref_id), rating)
+    except ValueError as exc:
+        return {"error": str(exc)}, 400
+    return {"card": card}
+
+
+@app.route("/api/learn/elaborate", methods=["POST"])
+def api_learn_elaborate():
+    data = request.get_json() or {}
+    method_id = data.get("method_id")
+    text = data.get("text", "")
+    if not method_id:
+        return {"error": "Missing method_id"}, 400
+    entry = memory_store.save_elaboration(method_id, text)
+    return {"elaboration": entry}
+
+
 @app.route("/api/progress", methods=["GET"])
 def api_progress():
-    return notes_store.get_progress()
+    progress = notes_store.get_progress()
+    progress["memory"] = memory_store.mastery_summary()
+    return progress
+
 
 
 if __name__ == "__main__":

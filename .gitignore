@@ -75,4 +75,11 @@ Thumbs.db
 leetcode_stats.json
 user_notes.json
 user_notes.json.tmp
+user_memory.json
+user_memory.json.tmp
 .vercel
+
+# App data
+data/
+*.db
+*.db-journal

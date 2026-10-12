@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Drill — Build coding interview form</title>
+    <title>Today — Drill</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
-<body class="drill-app landing">
+<body class="drill-app today-page">
     <div class="ambient ambient-a" aria-hidden="true"></div>
     <div class="ambient ambient-b" aria-hidden="true"></div>
 
@@ -19,125 +19,274 @@
             <span class="brand-name">Drill</span>
         </a>
         <nav class="topnav">
+            <a href="/" class="active">Today</a>
             <a href="/practice">Practice</a>
-            <a href="/skills">Skills</a>
-            <a href="/flashcard/progressive">Build Mode</a>
+            <a href="/paths">Paths</a>
         </nav>
-        <a class="primary-btn compact" href="/practice">Open IDE</a>
+        <div class="topbar-meta" id="due-chip">Loading…</div>
     </header>
 
-    <main>
-        <section class="hero">
-            <div class="hero-copy">
+    <main class="today-shell">
+        <!-- Idle / home -->
+        <section id="home" class="today-home">
+            <div class="today-hero">
                 <p class="brand-lockup">Drill</p>
-                <h1>Train interview coding the way you train form.</h1>
+                <h1>Learn one pattern. Prove it in code. Come back when it’s due.</h1>
                 <p class="hero-sub">
-                    Solve on a real desk IDE. Tag every problem with its method.
-                    Climb from technique → skill → pillar — like progressive overload for algorithms.
+                    No jargon maze. You see a pattern, check if you remember it,
+                    try a problem, then tap how it felt. That’s the whole loop.
                 </p>
-                <div class="cta-row">
-                    <a class="primary-btn" href="/practice">Start a rep</a>
-                    <a class="ghost-btn" href="/skills">View skill path</a>
+                <button type="button" class="primary-btn xl" id="btn-start">Start studying</button>
+            </div>
+
+            <div class="today-stats">
+                <div><strong id="s-due">—</strong><span>Ready now</span></div>
+                <div><strong id="s-left">—</strong><span>In this set</span></div>
+                <div><strong id="s-fluent">—</strong><span>Feeling solid</span></div>
+            </div>
+
+            <div class="today-hint">
+                <h2>How a study card works</h2>
+                <ol>
+                    <li><strong>See it</strong> — when to use the pattern, in plain words</li>
+                    <li><strong>Remember it</strong> — answer before peeking</li>
+                    <li><strong>Try it</strong> — open a real coding problem</li>
+                    <li><strong>Rate it</strong> — Forgot / Hard / Got it / Easy (schedules the next visit)</li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Active card -->
+        <section id="study" class="today-study hidden">
+            <div class="study-top">
+                <button type="button" class="ghost-btn" id="btn-exit">← Back</button>
+                <div class="study-progress">
+                    <div class="study-progress-bar" id="bar"></div>
                 </div>
+                <p id="study-label" class="study-label">1 of 6</p>
             </div>
-            <div class="hero-visual" aria-hidden="true">
-                <div class="hero-editor">
-                    <div class="hero-editor-bar">
-                        <span></span><span></span><span></span>
-                        <em>two_sum.py</em>
-                    </div>
-                    <pre><code><span class="cmt"># Method: Hash Map Lookup</span>
-<span class="cmt"># Store complement before you need it</span>
-<span class="kw">def</span> <span class="fn">two_sum</span>(nums, target):
-    seen = {}
-    <span class="kw">for</span> i, num <span class="kw">in</span> <span class="fn">enumerate</span>(nums):
-        need = target - num
-        <span class="kw">if</span> need <span class="kw">in</span> seen:
-            <span class="kw">return</span> [seen[need], i]
-        seen[num] = i</code></pre>
-                </div>
-            </div>
-        </section>
 
-        <section class="strip">
-            <div>
-                <strong id="stat-questions">—</strong>
-                <span>Problems</span>
+            <div class="stepper" id="stepper">
+                <button type="button" class="step active" data-step="0">1. See it</button>
+                <button type="button" class="step" data-step="1">2. Remember</button>
+                <button type="button" class="step" data-step="2">3. Try it</button>
+                <button type="button" class="step" data-step="3">4. Rate it</button>
             </div>
-            <div>
-                <strong id="stat-methods">—</strong>
-                <span>Methods</span>
-            </div>
-            <div>
-                <strong id="stat-skills">—</strong>
-                <span>Skills</span>
-            </div>
-            <div>
-                <strong id="stat-solved">—</strong>
-                <span>Reps logged</span>
-            </div>
-        </section>
 
-        <section class="features">
-            <article>
-                <h2>Interview desk IDE</h2>
-                <p>
-                    Write in Python, JavaScript, Java, or C++ with a full editor —
-                    the same muscle memory you will use on interview day.
-                </p>
-                <a href="/practice">Open practice →</a>
-            </article>
-            <article>
-                <h2>Comments become notes</h2>
-                <p>
-                    Technique comments in your solution are harvested into a study
-                    notepad you can reopen by problem or by method.
-                </p>
-                <a href="/practice">Write a cue →</a>
-            </article>
-            <article>
-                <h2>Methods stack upward</h2>
-                <p>
-                    Every problem lists its method. Click it to see the parent skill
-                    and pillar — form cues aggregating into something you can explain.
-                </p>
-                <a href="/skills">Climb the path →</a>
-            </article>
-        </section>
-
-        <section class="modes">
-            <div>
-                <p class="eyebrow">Also available</p>
-                <h2>Build Mode</h2>
-                <p>Assemble a solution section by section when you want guided reps before free practice.</p>
-                <a class="ghost-btn" href="/flashcard/progressive">Enter Build Mode</a>
-            </div>
+            <article class="study-card" id="card"></article>
         </section>
     </main>
 
-    <footer class="site-footer">
-        <span>Drill · open-source interview form training</span>
-        <a href="/api">API</a>
-    </footer>
-
     <script>
         const API = window.location.origin;
-        async function boot() {
-            try {
-                const [stats, tree, progress] = await Promise.all([
-                    fetch(`${API}/stats`).then(r => r.json()),
-                    fetch(`${API}/api/skills/tree`).then(r => r.json()),
-                    fetch(`${API}/api/progress`).then(r => r.json()),
-                ]);
-                document.getElementById('stat-questions').textContent = stats.total_questions ?? '—';
-                document.getElementById('stat-methods').textContent = tree.method_count ?? '—';
-                document.getElementById('stat-skills').textContent = tree.skill_count ?? '—';
-                document.getElementById('stat-solved').textContent = progress.solved_count ?? 0;
-            } catch (e) {
-                console.error(e);
+        let queue = [];
+        let index = 0;
+        let step = 0;
+        let revealed = false;
+
+        const esc = (s) => String(s || '')
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+        async function refreshStats() {
+            const m = await fetch(`${API}/api/learn/mastery`).then(r => r.json());
+            document.getElementById('s-due').textContent = m.due_count ?? 0;
+            document.getElementById('s-fluent').textContent =
+                `${m.methods_fluent ?? 0} / ${m.total_methods ?? 0}`;
+            document.getElementById('due-chip').textContent =
+                (m.due_count ? `${m.due_count} ready` : 'Caught up');
+            return m;
+        }
+
+        async function start() {
+            const res = await fetch(`${API}/api/learn/session`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ limit: 5 }),
+            });
+            const data = await res.json();
+            queue = data.steps || [];
+            if (!queue.length) {
+                alert('Nothing in the curriculum yet.');
+                return;
+            }
+            index = 0;
+            step = 0;
+            document.getElementById('s-left').textContent = String(queue.length);
+            document.getElementById('home').classList.add('hidden');
+            document.getElementById('study').classList.remove('hidden');
+            render();
+        }
+
+        function setStepper() {
+            document.querySelectorAll('#stepper .step').forEach((el, i) => {
+                el.classList.toggle('active', i === step);
+                el.classList.toggle('done', i < step);
+            });
+            const pct = ((index + (step + 1) / 4) / queue.length) * 100;
+            document.getElementById('bar').style.width = pct + '%';
+            document.getElementById('study-label').textContent =
+                `${index + 1} of ${queue.length}`;
+        }
+
+        function frames(visual) {
+            if (!visual?.frames?.length) return '';
+            return `<div class="pattern-visual">
+                ${visual.frames.map(f => `
+                    <div class="visual-frame">
+                        <span class="frame-label">${esc(f.label || 'step')}</span>
+                        <span class="frame-body">${esc(f.note || f.action || f.map || f.stack || f.arr || f.s || '')}</span>
+                    </div>`).join('')}
+            </div>`;
+        }
+
+        function render() {
+            const item = queue[index];
+            const p = item.card;
+            const name = p.method.name;
+            setStepper();
+            revealed = false;
+            const el = document.getElementById('card');
+
+            if (step === 0) {
+                el.innerHTML = `
+                    <p class="eyebrow">New pattern</p>
+                    <h1>${esc(name)}</h1>
+                    <p class="big-line"><span>Use it when</span> ${esc(p.trigger)}</p>
+                    <p class="schema-line">${esc(p.schema)}</p>
+                    ${frames(p.visual)}
+                    <ul class="plain-cues">
+                        ${(p.form_cues || []).map(c => `<li>${esc(c)}</li>`).join('')}
+                    </ul>
+                    <button type="button" class="primary-btn" id="next">Got the idea →</button>`;
+                document.getElementById('next').onclick = async () => {
+                    await fetch(`${API}/api/learn/encode`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ kind: 'method', ref_id: item.ref_id }),
+                    });
+                    step = 1; render();
+                };
+            } else if (step === 1) {
+                el.innerHTML = `
+                    <p class="eyebrow">Check yourself</p>
+                    <h1>Do you remember ${esc(name)}?</h1>
+                    <p class="prompt-box">${esc(p.retrieve_prompt)}</p>
+                    <textarea id="attempt" placeholder="Type what you’d say out loud in an interview…"></textarea>
+                    <div id="answer" class="reveal-box hidden">
+                        <p class="eyebrow">Target answer</p>
+                        <p>${esc(p.retrieve_answer)}</p>
+                    </div>
+                    <div class="cta-row">
+                        <button type="button" class="ghost-btn" id="peek">Show answer</button>
+                        <button type="button" class="primary-btn" id="next">Continue →</button>
+                    </div>`;
+                document.getElementById('peek').onclick = () => {
+                    document.getElementById('answer').classList.remove('hidden');
+                    revealed = true;
+                };
+                document.getElementById('next').onclick = () => {
+                    if (!revealed) {
+                        document.getElementById('answer').classList.remove('hidden');
+                        revealed = true;
+                        return;
+                    }
+                    step = 2; render();
+                };
+            } else if (step === 2) {
+                const tp = item.transfer_problem;
+                el.innerHTML = `
+                    <p class="eyebrow">Put it to work</p>
+                    <h1>Try ${esc(name)} on a real problem</h1>
+                    <p class="lede">Open the editor, solve it, leave short comments for yourself. Then come back here to rate.</p>
+                    ${tp ? `
+                        <a class="transfer-card" href="/practice/${tp.id}">
+                            <span class="eyebrow">${esc(tp.difficulty)} · ${esc(tp.category || '')}</span>
+                            <strong>${esc(tp.title)}</strong>
+                            <span class="transfer-cta">Open problem →</span>
+                        </a>` : `<p class="muted">No problem linked yet.</p>`}
+                    <button type="button" class="primary-btn" id="next">I tried it →</button>`;
+                document.getElementById('next').onclick = () => { step = 3; render(); };
+            } else {
+                el.innerHTML = `
+                    <p class="eyebrow">How did that feel?</p>
+                    <h1>${esc(name)}</h1>
+                    <p class="lede">Your rating decides when you’ll see this again — soon if it was shaky, later if it was easy.</p>
+                    <textarea id="elab" placeholder="Optional: one sentence you’ll remember…">${esc((item.elaboration && item.elaboration.text) || '')}</textarea>
+                    <div class="rating-row human">
+                        <button type="button" class="rate again" data-r="again">Forgot</button>
+                        <button type="button" class="rate hard" data-r="hard">Hard</button>
+                        <button type="button" class="rate good" data-r="good">Got it</button>
+                        <button type="button" class="rate easy" data-r="easy">Easy</button>
+                    </div>`;
+                document.querySelectorAll('.rate').forEach(btn => {
+                    btn.onclick = () => finishCard(btn.dataset.r);
+                });
             }
         }
-        boot();
+
+        async function finishCard(rating) {
+            const item = queue[index];
+            const text = document.getElementById('elab')?.value || '';
+            if (text.trim()) {
+                await fetch(`${API}/api/learn/elaborate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ method_id: item.ref_id, text }),
+                });
+            }
+            const res = await fetch(`${API}/api/learn/review`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ kind: 'method', ref_id: item.ref_id, rating }),
+            });
+            const data = await res.json();
+            const days = Number(data.card?.interval_days || 0);
+            const when = days < 1 ? 'later today' : `in about ${Math.round(days)} day${Math.round(days) === 1 ? '' : 's'}`;
+            document.getElementById('card').innerHTML = `
+                <p class="eyebrow">Saved</p>
+                <h1>You’ll see this again ${esc(when)}.</h1>
+                <p class="lede">Next pattern when you’re ready.</p>
+                <button type="button" class="primary-btn" id="next">Next →</button>`;
+            document.getElementById('next').onclick = () => {
+                index += 1;
+                step = 0;
+                if (index >= queue.length) {
+                    done();
+                } else {
+                    render();
+                }
+            };
+        }
+
+        function done() {
+            document.getElementById('study').classList.add('hidden');
+            document.getElementById('home').classList.remove('hidden');
+            refreshStats();
+        }
+
+        document.getElementById('btn-start').onclick = start;
+        document.getElementById('btn-exit').onclick = done;
+        refreshStats().then(async (m) => {
+            document.getElementById('s-left').textContent = Math.min(5, Math.max(m.due_count || 5, 3));
+            const focus = new URLSearchParams(window.location.search).get('focus');
+            if (!focus) return;
+            const payload = await fetch(`${API}/api/learn/pattern/${encodeURIComponent(focus)}`).then(r => r.json());
+            if (!payload.pattern) return;
+            queue = [{
+                kind: 'method',
+                ref_id: focus,
+                card: payload.pattern,
+                transfer_problem: (payload.related_problems || [])[0] || null,
+                elaboration: payload.elaboration,
+            }];
+            index = 0; step = 0;
+            document.getElementById('s-left').textContent = '1';
+            document.getElementById('home').classList.add('hidden');
+            document.getElementById('study').classList.remove('hidden');
+            history.replaceState(null, '', '/');
+            render();
+        });
     </script>
 </body>
 </html>

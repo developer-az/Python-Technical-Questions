@@ -1,17 +1,20 @@
 """
-Direct Flask app for Vercel deployment
-This is a simplified version that imports everything needed
+Vercel entry helper — keep in sync with api/index.py
 """
 
 import os
 import sys
 
-# Add parent directory to path
-parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.insert(0, parent_dir)
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if ROOT not in sys.path:
+    sys.path.insert(0, ROOT)
 
-# Import the main app
-from app import app
+os.environ.setdefault("VERCEL", os.environ.get("VERCEL", "1"))
 
-# Export for Vercel
-app = app
+from app import app as flask_app
+
+flask_app.template_folder = os.path.join(ROOT, "templates")
+flask_app.static_folder = os.path.join(ROOT, "static")
+flask_app.root_path = ROOT
+
+app = flask_app

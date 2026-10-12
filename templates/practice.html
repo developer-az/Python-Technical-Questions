@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Practice IDE — Drill</title>
+    <title>Practice — Drill</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Source+Sans+3:wght@400;500;600;700&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/clike/clike.min.js"></script>
 </head>
-<body class="drill-app">
+<body class="drill-app practice-page">
     <div class="ambient ambient-a" aria-hidden="true"></div>
     <div class="ambient ambient-b" aria-hidden="true"></div>
 
@@ -25,373 +25,246 @@
             <span class="brand-name">Drill</span>
         </a>
         <nav class="topnav">
+            <a href="/">Today</a>
             <a href="/practice" class="active">Practice</a>
-            <a href="/skills">Skills</a>
-            <a href="/flashcard/progressive">Build Mode</a>
+            <a href="/paths">Paths</a>
         </nav>
-        <div class="topbar-meta" id="session-meta">Interview desk</div>
+        <div class="topbar-meta">Your code auto-saves</div>
     </header>
 
-    <main class="practice-shell">
-        <aside class="catalog-panel">
-            <div class="panel-head">
-                <h2>Reps</h2>
-                <select id="filter-difficulty" aria-label="Filter difficulty">
-                    <option value="">All levels</option>
+    <main class="practice-simple">
+        <aside class="ps-list">
+            <div class="ps-list-head">
+                <h2>Problems</h2>
+                <select id="filter-difficulty" aria-label="Difficulty">
+                    <option value="">All</option>
                     <option value="Easy">Easy</option>
                     <option value="Medium">Medium</option>
                     <option value="Hard">Hard</option>
                 </select>
             </div>
-            <div id="catalog-list" class="catalog-list"></div>
+            <div id="catalog" class="catalog-list"></div>
         </aside>
 
-        <section class="problem-panel">
-            <div id="empty-state" class="empty-state">
-                <p class="eyebrow">Pick a rep</p>
-                <h1>Open a problem and train like the interview room.</h1>
-                <p>Write code in the IDE. Leave technique comments. Click a method to climb the skill tree.</p>
+        <section class="ps-main" id="main">
+            <div id="empty" class="empty-state">
+                <h1>Pick a problem</h1>
+                <p>Write a solution like you would in an interview. Short comments become study notes.</p>
             </div>
 
-            <div id="problem-view" class="hidden">
-                <div class="problem-header">
+            <div id="workspace" class="hidden">
+                <header class="ps-problem">
                     <div>
-                        <p class="eyebrow" id="problem-category">Arrays</p>
-                        <h1 id="problem-title">Two Sum</h1>
+                        <p class="eyebrow" id="category">Arrays</p>
+                        <h1 id="title">Two Sum</h1>
                     </div>
-                    <span class="diff-badge" id="problem-diff">Easy</span>
+                    <span class="diff-badge" id="diff">Easy</span>
+                </header>
+                <div class="method-row" id="methods"></div>
+                <details class="ps-details" open>
+                    <summary>Problem</summary>
+                    <pre id="body" class="problem-body"></pre>
+                </details>
+                <details class="ps-details">
+                    <summary>Hints</summary>
+                    <ul id="hints" class="hints-list"></ul>
+                </details>
+
+                <div class="ps-editor-wrap">
+                    <div class="ide-toolbar">
+                        <label class="lang-select">
+                            <span>Language</span>
+                            <select id="language">
+                                <option value="python">Python</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="java">Java</option>
+                                <option value="cpp">C++</option>
+                            </select>
+                        </label>
+                        <div class="ide-actions">
+                            <button type="button" class="ghost-btn" id="btn-reset">Reset</button>
+                            <button type="button" class="ghost-btn" id="btn-ref">Show reference</button>
+                            <button type="button" class="ghost-btn" id="btn-notes">Save notes from comments</button>
+                            <button type="button" class="primary-btn" id="btn-done">Mark done</button>
+                        </div>
+                    </div>
+                    <textarea id="code"></textarea>
+                    <div id="feedback" class="ide-feedback hidden"></div>
                 </div>
-                <div class="method-row" id="method-row"></div>
-                <article class="problem-body" id="problem-body"></article>
-                <div class="hint-block">
-                    <button type="button" class="ghost-btn" id="toggle-hints">Show hints</button>
-                    <ul id="hints-list" class="hints-list hidden"></ul>
+
+                <div class="ps-notes">
+                    <h3>Your notepad</h3>
+                    <textarea id="notepad" placeholder="How you solved it, in your own words…"></textarea>
+                    <div id="tech-notes" class="technique-notes"></div>
                 </div>
             </div>
         </section>
-
-        <section class="ide-panel">
-            <div class="ide-toolbar">
-                <label class="lang-select">
-                    <span>Language</span>
-                    <select id="language-select">
-                        <option value="python">Python</option>
-                        <option value="javascript">JavaScript</option>
-                        <option value="java">Java</option>
-                        <option value="cpp">C++</option>
-                    </select>
-                </label>
-                <div class="ide-actions">
-                    <button type="button" class="ghost-btn" id="btn-reset">Reset starter</button>
-                    <button type="button" class="ghost-btn" id="btn-load-solution">Load reference</button>
-                    <button type="button" class="ghost-btn" id="btn-harvest">Harvest comments</button>
-                    <button type="button" class="primary-btn" id="btn-submit">Record rep</button>
-                </div>
-            </div>
-            <textarea id="code-editor" aria-label="Code editor"></textarea>
-            <div id="ide-feedback" class="ide-feedback hidden"></div>
-        </section>
-
-        <aside class="notes-panel">
-            <div class="notes-tabs">
-                <button type="button" class="tab active" data-tab="notepad">Notepad</button>
-                <button type="button" class="tab" data-tab="technique">Technique notes</button>
-            </div>
-            <div id="tab-notepad" class="tab-panel">
-                <p class="panel-hint">Open scratch pad — keep how you solved it, in your words.</p>
-                <textarea id="notepad" placeholder="Approach, edge cases, what clicked..."></textarea>
-                <button type="button" class="ghost-btn full" id="btn-save-notepad">Save notepad</button>
-            </div>
-            <div id="tab-technique" class="tab-panel hidden">
-                <p class="panel-hint">Comments from your code land here as durable form cues.</p>
-                <div id="technique-notes" class="technique-notes"></div>
-            </div>
-        </aside>
     </main>
 
     <script>
         const API = window.location.origin;
-        const INITIAL_Q = {{ question_id|tojson }};
-        let currentId = null;
-        let currentData = null;
-        let editor = null;
-        let notepadTimer = null;
+        const INITIAL = {{ question_id|tojson }};
+        const MODES = { python:'python', javascript:'javascript', java:'text/x-java', cpp:'text/x-c++src' };
+        let id = null, data = null, editor = null, saveTimer = null, noteTimer = null;
 
-        const MODE_MAP = {
-            python: 'python',
-            javascript: 'javascript',
-            java: 'text/x-java',
-            cpp: 'text/x-c++src',
-        };
+        const esc = (s) => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 
-        function initEditor() {
-            editor = CodeMirror.fromTextArea(document.getElementById('code-editor'), {
-                lineNumbers: true,
-                theme: 'material-darker',
-                mode: 'python',
-                indentUnit: 4,
-                tabSize: 4,
-                lineWrapping: true,
-                autofocus: false,
+        function flash(msg, err) {
+            const el = document.getElementById('feedback');
+            el.classList.remove('hidden');
+            el.className = 'ide-feedback ' + (err ? 'error' : 'ok');
+            el.textContent = msg;
+        }
+
+        editor = CodeMirror.fromTextArea(document.getElementById('code'), {
+            lineNumbers: true, theme: 'material-darker', mode: 'python',
+            indentUnit: 4, lineWrapping: true,
+        });
+        editor.setSize('100%', '360px');
+        editor.on('change', () => {
+            if (!id) return;
+            clearTimeout(saveTimer);
+            saveTimer = setTimeout(saveDraft, 600);
+        });
+
+        async function saveDraft() {
+            if (!id) return;
+            await fetch(`${API}/api/practice/${id}/draft`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    language: document.getElementById('language').value,
+                    code: editor.getValue(),
+                }),
             });
-            editor.setSize('100%', '100%');
         }
 
         async function loadCatalog() {
-            const diff = document.getElementById('filter-difficulty').value;
-            const qs = diff ? `?difficulty=${encodeURIComponent(diff)}` : '';
+            const d = document.getElementById('filter-difficulty').value;
+            const qs = d ? `?difficulty=${encodeURIComponent(d)}` : '';
             const res = await fetch(`${API}/api/practice/catalog${qs}`);
-            const data = await res.json();
-            const list = document.getElementById('catalog-list');
-            list.innerHTML = '';
-            data.questions.forEach(q => {
+            const payload = await res.json();
+            const box = document.getElementById('catalog');
+            box.innerHTML = '';
+            payload.questions.forEach(q => {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'catalog-item' + (q.id === currentId ? ' active' : '');
-                btn.innerHTML = `
-                    <span class="catalog-title">${escapeHtml(q.title)}</span>
-                    <span class="catalog-meta">
-                        <span class="diff-dot diff-${q.difficulty.toLowerCase()}">${q.difficulty}</span>
-                        <span>${q.primary_method ? escapeHtml(q.primary_method.name) : ''}</span>
-                    </span>`;
-                btn.addEventListener('click', () => openQuestion(q.id));
-                list.appendChild(btn);
+                btn.className = 'catalog-item' + (q.id === id ? ' active' : '');
+                btn.innerHTML = `<span class="catalog-title">${esc(q.title)}</span>
+                    <span class="catalog-meta"><span class="diff-dot diff-${q.difficulty.toLowerCase()}">${esc(q.difficulty)}</span>
+                    <span>${esc(q.primary_method?.name || '')}</span></span>`;
+                btn.onclick = () => openQ(q.id);
+                box.appendChild(btn);
             });
         }
 
-        async function openQuestion(id, language) {
-            const lang = language || document.getElementById('language-select').value || 'python';
-            const res = await fetch(`${API}/api/practice/${id}?language=${encodeURIComponent(lang)}`);
-            if (!res.ok) {
-                showFeedback('Could not load problem.', true);
-                return;
-            }
-            const data = await res.json();
-            currentId = id;
-            currentData = data;
-            document.getElementById('language-select').value = data.language;
-            renderProblem(data);
-            editor.setOption('mode', MODE_MAP[data.language] || 'python');
-            const savedKey = `drill-code-${id}-${data.language}`;
-            const localCode = localStorage.getItem(savedKey);
-            editor.setValue(localCode || data.starter);
-            document.getElementById('notepad').value = (data.notepad && data.notepad.content) || '';
+        async function openQ(qid, lang) {
+            lang = lang || document.getElementById('language').value || 'python';
+            const res = await fetch(`${API}/api/practice/${qid}?language=${encodeURIComponent(lang)}`);
+            if (!res.ok) return flash('Could not load problem', true);
+            data = await res.json();
+            id = qid;
+            document.getElementById('language').value = data.language;
+            document.getElementById('empty').classList.add('hidden');
+            document.getElementById('workspace').classList.remove('hidden');
+            document.getElementById('title').textContent = data.question.title;
+            document.getElementById('category').textContent = data.question.category || '';
+            const diff = document.getElementById('diff');
+            diff.textContent = data.question.difficulty;
+            diff.className = 'diff-badge diff-' + data.question.difficulty.toLowerCase();
+            document.getElementById('body').textContent = data.question.problem || data.question.description || '';
+            document.getElementById('hints').innerHTML = (data.question.hints || []).map(h => `<li>${esc(h)}</li>`).join('');
+            const methods = document.getElementById('methods');
+            methods.innerHTML = (data.methods || []).map(m =>
+                `<a class="method-chip${m.primary ? ' primary' : ''}" href="/paths/${m.id}">
+                    <span>${esc(m.name)}</span><small>${esc(m.summary)}</small></a>`
+            ).join('');
+            editor.setOption('mode', MODES[data.language] || 'python');
+            const draft = data.draft?.code;
+            editor.setValue(draft || data.starter || '');
+            document.getElementById('notepad').value = data.notepad?.content || '';
             renderNotes(data.notes || []);
-            document.getElementById('empty-state').classList.add('hidden');
-            document.getElementById('problem-view').classList.remove('hidden');
-            document.getElementById('session-meta').textContent =
-                data.primary_method_id ? `Method focus · ${data.methods[0]?.name || ''}` : 'Interview desk';
-            history.replaceState(null, '', `/practice/${id}`);
+            history.replaceState(null, '', `/practice/${qid}`);
             loadCatalog();
             editor.refresh();
         }
 
-        function renderProblem(data) {
-            const q = data.question;
-            document.getElementById('problem-title').textContent = q.title;
-            document.getElementById('problem-category').textContent = q.category || 'General';
-            const badge = document.getElementById('problem-diff');
-            badge.textContent = q.difficulty;
-            badge.className = 'diff-badge diff-' + q.difficulty.toLowerCase();
-            document.getElementById('problem-body').textContent =
-                q.problem || q.description || '';
-
-            const row = document.getElementById('method-row');
-            row.innerHTML = '';
-            (data.methods || []).forEach(m => {
-                const a = document.createElement('a');
-                a.href = `/skills/method/${m.id}`;
-                a.className = 'method-chip' + (m.primary ? ' primary' : '');
-                a.innerHTML = `<span>${escapeHtml(m.name)}</span><small>${escapeHtml(m.summary)}</small>`;
-                a.title = 'Open skill aggregation for this method';
-                row.appendChild(a);
-            });
-
-            const hints = q.hints || [];
-            const list = document.getElementById('hints-list');
-            list.innerHTML = hints.map(h => `<li>${escapeHtml(h)}</li>`).join('');
-            list.classList.add('hidden');
-            document.getElementById('toggle-hints').textContent = 'Show hints';
-        }
-
         function renderNotes(notes) {
-            const box = document.getElementById('technique-notes');
+            const box = document.getElementById('tech-notes');
             if (!notes.length) {
-                box.innerHTML = '<p class="muted">No harvested notes yet. Write technique comments in the editor, then harvest.</p>';
+                box.innerHTML = '<p class="muted">Notes from your comments will show up here.</p>';
                 return;
             }
-            box.innerHTML = notes.map(n => `
-                <article class="note-card">
-                    <p>${escapeHtml(n.text)}</p>
-                    <footer>
-                        <span>${escapeHtml(n.kind)}</span>
-                        ${n.method_id ? `<a href="/skills/method/${n.method_id}">${escapeHtml(n.method_id)}</a>` : ''}
-                        <button type="button" data-del="${n.id}" class="linkish">Remove</button>
-                    </footer>
-                </article>`).join('');
-            box.querySelectorAll('[data-del]').forEach(btn => {
-                btn.addEventListener('click', async () => {
-                    await fetch(`${API}/api/notes/${btn.dataset.del}`, { method: 'DELETE' });
-                    const res = await fetch(`${API}/api/notes?question_id=${currentId}`);
-                    const data = await res.json();
-                    renderNotes(data.notes);
-                });
-            });
+            box.innerHTML = notes.map(n => `<article class="note-card"><p>${esc(n.text)}</p></article>`).join('');
         }
 
-        function showFeedback(msg, isError) {
-            const el = document.getElementById('ide-feedback');
-            el.classList.remove('hidden');
-            el.className = 'ide-feedback' + (isError ? ' error' : ' ok');
-            el.innerHTML = msg;
-        }
-
-        function escapeHtml(str) {
-            return String(str || '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
-
-        document.getElementById('filter-difficulty').addEventListener('change', loadCatalog);
-
-        document.getElementById('language-select').addEventListener('change', async (e) => {
-            if (!currentId) return;
-            const lang = e.target.value;
-            // Persist current before switching
-            if (currentData) {
-                localStorage.setItem(
-                    `drill-code-${currentId}-${currentData.language}`,
-                    editor.getValue()
-                );
+        document.getElementById('filter-difficulty').onchange = loadCatalog;
+        document.getElementById('language').onchange = async (e) => {
+            if (!id) return;
+            await saveDraft();
+            await openQ(id, e.target.value);
+        };
+        document.getElementById('btn-reset').onclick = () => { if (data) editor.setValue(data.starter); };
+        document.getElementById('btn-ref').onclick = () => {
+            if (!data) return;
+            const q = data.question;
+            let code = (q.solution || q.solutions?.[0]?.code || '').split('Time Complexity:')[0].trim();
+            if (!code || document.getElementById('language').value !== 'python') {
+                return flash('Reference is available in Python.', true);
             }
-            await openQuestion(currentId, lang);
-        });
-
-        document.getElementById('btn-reset').addEventListener('click', () => {
-            if (!currentData) return;
-            editor.setValue(currentData.starter);
-        });
-
-        document.getElementById('btn-load-solution').addEventListener('click', () => {
-            if (!currentData) return;
-            const q = currentData.question;
-            let code = '';
-            if (q.solution && document.getElementById('language-select').value === 'python') {
-                code = String(q.solution).split('Time Complexity:')[0].trim() + '\n';
-            } else if (q.solutions && q.solutions[0] && q.solutions[0].code) {
-                code = String(q.solutions[0].code).split('Time Complexity:')[0].trim() + '\n';
-            }
-            if (!code) {
-                showFeedback('Reference solution available in Python. Switch language to Python.', true);
-                return;
-            }
-            editor.setValue(code);
-            showFeedback('Reference loaded. Harvest comments to turn form cues into technique notes.');
-        });
-
-        document.getElementById('btn-harvest').addEventListener('click', async () => {
-            if (!currentId) return;
+            editor.setValue(code + '\n');
+        };
+        document.getElementById('btn-notes').onclick = async () => {
+            if (!id) return;
+            await saveDraft();
             const res = await fetch(`${API}/api/notes/harvest`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    question_id: currentId,
+                    question_id: id,
                     code: editor.getValue(),
-                    language: document.getElementById('language-select').value,
-                    method_id: currentData?.primary_method_id,
+                    language: document.getElementById('language').value,
+                    method_id: data?.primary_method_id,
                 }),
             });
-            const data = await res.json();
-            renderNotes(data.notes || []);
-            document.querySelector('.tab[data-tab="technique"]').click();
-            showFeedback(
-                data.count
-                    ? `Harvested ${data.count} technique note${data.count === 1 ? '' : 's'}.`
-                    : 'No new technique comments found. Write notes like: # Store complement in the map before checking.'
-            );
-        });
-
-        document.getElementById('btn-submit').addEventListener('click', async () => {
-            if (!currentId) return;
-            const code = editor.getValue();
-            localStorage.setItem(
-                `drill-code-${currentId}-${document.getElementById('language-select').value}`,
-                code
-            );
+            const out = await res.json();
+            renderNotes(out.notes || []);
+            flash(out.count ? `Saved ${out.count} note(s) from your comments.` : 'No new notes found — write a short comment about the technique.');
+        };
+        document.getElementById('btn-done').onclick = async () => {
+            if (!id) return;
+            await saveDraft();
             const res = await fetch(`${API}/api/practice/submit`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    question_id: currentId,
-                    code,
-                    language: document.getElementById('language-select').value,
+                    question_id: id,
+                    code: editor.getValue(),
+                    language: document.getElementById('language').value,
                     notepad: document.getElementById('notepad').value,
-                    method_id: currentData?.primary_method_id,
+                    method_id: data?.primary_method_id,
                     mark_solved: true,
                 }),
             });
-            const data = await res.json();
-            renderNotes(data.notes || (await (await fetch(`${API}/api/notes?question_id=${currentId}`)).json()).notes);
-            const next = data.next_drill;
-            showFeedback(
-                `<strong>${escapeHtml(data.message)}</strong>
-                 <p>${escapeHtml(data.feedback?.interview_tip || '')}</p>
-                 ${next ? `<p><a class="inline-link" href="${next.url}">Climb to ${escapeHtml(next.method_name)} →</a></p>` : ''}`
-            );
-        });
-
-        document.getElementById('btn-save-notepad').addEventListener('click', async () => {
-            if (!currentId) return;
-            await fetch(`${API}/api/notes/notepad/${currentId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ content: document.getElementById('notepad').value }),
-            });
-            showFeedback('Notepad saved.');
-        });
-
-        document.getElementById('notepad').addEventListener('input', () => {
-            if (!currentId) return;
-            clearTimeout(notepadTimer);
-            notepadTimer = setTimeout(async () => {
-                await fetch(`${API}/api/notes/notepad/${currentId}`, {
+            const out = await res.json();
+            flash(out.message || 'Saved.');
+            if (out.next_drill?.method_id) {
+                flash(`${out.message} Review “${out.next_drill.method_name}” on Paths when you want.`);
+            }
+        };
+        document.getElementById('notepad').oninput = () => {
+            if (!id) return;
+            clearTimeout(noteTimer);
+            noteTimer = setTimeout(async () => {
+                await fetch(`${API}/api/notes/notepad/${id}`, {
                     method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ content: document.getElementById('notepad').value }),
                 });
-            }, 800);
-        });
+            }, 700);
+        };
 
-        document.getElementById('toggle-hints').addEventListener('click', () => {
-            const list = document.getElementById('hints-list');
-            const hidden = list.classList.toggle('hidden');
-            document.getElementById('toggle-hints').textContent = hidden ? 'Show hints' : 'Hide hints';
-        });
-
-        document.querySelectorAll('.notes-tabs .tab').forEach(tab => {
-            tab.addEventListener('click', () => {
-                document.querySelectorAll('.notes-tabs .tab').forEach(t => t.classList.remove('active'));
-                tab.classList.add('active');
-                document.getElementById('tab-notepad').classList.toggle('hidden', tab.dataset.tab !== 'notepad');
-                document.getElementById('tab-technique').classList.toggle('hidden', tab.dataset.tab !== 'technique');
-            });
-        });
-
-        // Autosave code locally while typing
-        document.addEventListener('keydown', () => {
-            if (!currentId || !editor) return;
-            localStorage.setItem(
-                `drill-code-${currentId}-${document.getElementById('language-select').value}`,
-                editor.getValue()
-            );
-        });
-
-        initEditor();
-        loadCatalog().then(() => {
-            if (INITIAL_Q) openQuestion(INITIAL_Q);
-        });
+        loadCatalog().then(() => { if (INITIAL) openQ(INITIAL); });
     </script>
 </body>
 </html>

@@ -18,6 +18,7 @@ def test_home_endpoint(client):
 
     assert response.status_code == 200
     assert b"Drill" in response.data
+    assert b"Start studying" in response.data or b"Today" in response.data
     assert b"html" in response.data
 
 
@@ -27,9 +28,9 @@ def test_api_info_endpoint(client):
     data = json.loads(response.data)
 
     assert response.status_code == 200
-    assert "Drill" in data["description"] or "Technical" in data["name"]
+    assert "Drill" in data["description"] or "Drill" in data["name"]
     assert "endpoints" in data
-    assert data["version"] == "2.0.0"
+    assert data["version"] == "4.0.0"
 
 
 def test_health_endpoint(client):
@@ -398,7 +399,8 @@ def test_add_solution_missing_fields(client):
 def test_practice_page(client):
     response = client.get("/practice")
     assert response.status_code == 200
-    assert b"Practice IDE" in response.data or b"code-editor" in response.data
+    assert b"Practice" in response.data
+    assert b"code" in response.data or b"Problems" in response.data
 
 
 def test_practice_page_with_question(client):
@@ -508,3 +510,83 @@ def test_questions_include_methods(client):
     data = json.loads(response.data)
     assert response.status_code == 200
     assert data["question"]["primary_method"]["id"] == "hash_map"
+
+
+def test_learn_page(client):
+    response = client.get("/learn", follow_redirects=False)
+    assert response.status_code in (302, 301)
+    response = client.get("/learn", follow_redirects=True)
+    assert response.status_code == 200
+    assert b"Start studying" in response.data or b"Drill" in response.data
+
+
+def test_paths_page(client):
+    response = client.get("/paths")
+    assert response.status_code == 200
+    assert b"Paths" in response.data
+
+
+def test_draft_roundtrip(client):
+    response = client.put(
+        "/api/practice/1/draft",
+        data=json.dumps({"language": "python", "code": "def two_sum():\n    pass\n"}),
+        content_type="application/json",
+    )
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert "two_sum" in data["code"]
+    loaded = client.get("/api/practice/1?language=python")
+    payload = json.loads(loaded.data)
+    assert "two_sum" in (payload.get("draft") or {}).get("code", "")
+
+
+def test_learn_session_api(client):
+    response = client.post(
+        "/api/learn/session",
+        data=json.dumps({"limit": 4}),
+        content_type="application/json",
+    )
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert data["step_count"] == 4
+    assert data["steps"][0]["card"]["retrieve_prompt"]
+
+
+def test_learn_review_flow(client):
+    unique = f"hash_map_test_{uuid.uuid4().hex[:6]}"
+    # use a real method id
+    encode = client.post(
+        "/api/learn/encode",
+        data=json.dumps({"kind": "method", "ref_id": "greedy_scan"}),
+        content_type="application/json",
+    )
+    assert encode.status_code == 200
+    elab = client.post(
+        "/api/learn/elaborate",
+        data=json.dumps(
+            {
+                "method_id": "greedy_scan",
+                "text": f"Keep one running extremum {unique}",
+            }
+        ),
+        content_type="application/json",
+    )
+    assert elab.status_code == 200
+    review = client.post(
+        "/api/learn/review",
+        data=json.dumps(
+            {"kind": "method", "ref_id": "greedy_scan", "rating": "good"}
+        ),
+        content_type="application/json",
+    )
+    data = json.loads(review.data)
+    assert review.status_code == 200
+    assert data["card"]["repetitions"] >= 1
+
+
+def test_learn_mastery_api(client):
+    response = client.get("/api/learn/mastery")
+    data = json.loads(response.data)
+    assert response.status_code == 200
+    assert "due_count" in data
+    assert data["total_methods"] >= 1
